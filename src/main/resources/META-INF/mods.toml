@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[45,)"
+license='MIT License'
+
+[[mods]]
+modId="modkit"
+version="${file.jarVersion}"
+displayName="ModKit"
+credits=""
+authors="TheDarkColour"
+description='''
+Make mods without all the boilerplate
+'''
+[[dependencies.modkit]]
+modId="forge"
+mandatory=true
+versionRange="[45,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.modkit]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.19.4]"
+ordering="NONE"
+side="BOTH"
