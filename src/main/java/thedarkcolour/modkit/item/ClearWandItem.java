@@ -23,6 +23,7 @@ public class ClearWandItem extends AbstractFillWand {
         if (needsStartPos(stack)) {
             saveStartPos(stack, pos, player);
         } else {
+            player.getCooldowns().addCooldown(this, 5);
             fill(stack, Blocks.AIR.defaultBlockState(), pos, level, player);
         }
     }

@@ -58,6 +58,7 @@ public class CloneWandItem extends AbstractFillWand {
             }
 
             undoMap.put(player, builder.build());
+            player.getCooldowns().addCooldown(this, 25);
             player.displayClientMessage(Component.literal(String.format("Cloned structure anchored at (%d %d %d)", pos.getX(), pos.getY(), pos.getZ())), true);
         }
     }

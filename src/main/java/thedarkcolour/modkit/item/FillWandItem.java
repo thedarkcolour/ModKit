@@ -36,6 +36,7 @@ public class FillWandItem extends AbstractFillWand {
                     player.displayClientMessage(Component.literal("No filler block"), true);
                 } else {
                     fill(stack, NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), savedFillBlock), pos, level, player);
+                    player.getCooldowns().addCooldown(this, 5);
                 }
             }
         }
