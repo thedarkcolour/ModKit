@@ -1,5 +1,6 @@
 package thedarkcolour.modkit.item;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -8,7 +9,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class FillWandItem extends AbstractFillWand {
     public FillWandItem(Properties pProperties) {
@@ -33,12 +38,22 @@ public class FillWandItem extends AbstractFillWand {
                 CompoundTag savedFillBlock = stack.getTagElement("FillBlock");
 
                 if (savedFillBlock == null) {
-                    player.displayClientMessage(Component.literal("No filler block"), true);
+                    player.displayClientMessage(Component.literal("No filler block (use sneak click on a block)"), true);
                 } else {
                     fill(stack, NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), savedFillBlock), pos, level, player);
                     player.getCooldowns().addCooldown(this, 5);
                 }
             }
+        }
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag advanced) {
+        super.appendHoverText(stack, level, tooltip, advanced);
+        CompoundTag savedFillBlock = stack.getTagElement("FillBlock");
+
+        if (savedFillBlock != null) {
+            tooltip.add(Component.literal("Filler Block: ").append(Component.translatable(NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), savedFillBlock).getBlock().getDescriptionId()).withStyle(ChatFormatting.YELLOW)));
         }
     }
 }

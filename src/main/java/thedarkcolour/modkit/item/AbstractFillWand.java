@@ -1,6 +1,7 @@
 package thedarkcolour.modkit.item;
 
 import com.google.common.collect.ImmutableMap;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
@@ -12,6 +13,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -19,6 +21,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class AbstractFillWand extends Item {
@@ -104,19 +107,34 @@ public abstract class AbstractFillWand extends Item {
     protected abstract void handleUse(Level level, ItemStack stack, BlockPos pos, Player player);
 
     @Override
-    public ItemStack finishUsingItem(ItemStack pStack, Level pLevel, LivingEntity pLivingEntity) {
-        if (pLivingEntity instanceof Player player) {
+    public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
+        if (entity instanceof Player player) {
             var undoBlocks = undoMap.get(player);
 
             if (undoBlocks != null) {
                 for (var entry : undoBlocks.entrySet()) {
-                    pLevel.setBlock(entry.getKey(), entry.getValue(), 2);
+                    level.setBlock(entry.getKey(), entry.getValue(), 2);
                 }
                 player.displayClientMessage(Component.literal("Undo!"), true);
                 undoMap.remove(player);
             }
         }
 
-        return pStack;
+        return stack;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag advanced) {
+        if (!needsStartPos(stack)) {
+            BlockPos startPos = NbtUtils.readBlockPos(stack.getTagElement("StartPos"));
+            tooltip.add(Component.literal("Start Position: (" + startPos.getX() + ", " + startPos.getY() + ", " + startPos.getZ() + ")"));
+        } else {
+            tooltip.add(Component.literal("Tip: Hold sneak click in the air to undo last operation").withStyle(ChatFormatting.DARK_GRAY));
+        }
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return needsStartPos(stack) ? super.getName(stack) : Component.translatable(this.getDescriptionId(stack)).append("*");
     }
 }
