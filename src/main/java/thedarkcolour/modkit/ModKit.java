@@ -1,5 +1,6 @@
 package thedarkcolour.modkit;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -39,6 +40,7 @@ public class ModKit {
     private static void addCreativeTab(CreativeModeTabEvent.Register event) {
         event.registerCreativeModeTab(new ResourceLocation(ModKit.ID, ModKit.ID), builder -> {
             builder.icon(() -> new ItemStack(CLONE_WAND.get()));
+            builder.title(Component.literal("ModKit"));
             builder.displayItems((params, output) -> {
                 output.accept(FILL_WAND.get());
                 output.accept(CLEAR_WAND.get());

@@ -1,12 +1,18 @@
 package thedarkcolour.modkit.data;
 
 import net.minecraft.data.PackOutput;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentContents;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
+import net.minecraftforge.common.CreativeModeTabRegistry;
 import net.minecraftforge.common.data.LanguageProvider;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -43,7 +49,7 @@ public class MKEnglishProvider extends LanguageProvider {
             throw new IllegalStateException("Failed to create MKEnglishProvider");
         }
 
-        // Default handlers (code doesn't need to be most optimized, just needs to be easy to use)
+        // Default handlers
         this.registryObjectHandlers = new HashMap<>();
         addRegistryObjectHandler(Block.class, Block::getDescriptionId);
         addRegistryObjectHandler(Item.class, Item::getDescriptionId);
