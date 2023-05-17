@@ -1,5 +1,6 @@
 package thedarkcolour.modkit.data;
 
+import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -53,6 +54,12 @@ public class DataHelper {
             throw new IllegalStateException("Item models must be created first");
         }
         var blockModels = new MKBlockModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), modid, addBlockModels);
+        event.getGenerator().addProvider(event.includeClient(), blockModels);
+    }
+
+    public void createRecipes(BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
+        var recipes = new MKRecipeProvider(event.getGenerator().getPackOutput(), addRecipes);
+        event.getGenerator().addProvider(event.includeServer(), recipes);
     }
 
     static <T> void forModRegistry(IForgeRegistry<T> registry, String modid, BiConsumer<ResourceLocation, T> consumer) {

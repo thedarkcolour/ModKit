@@ -20,6 +20,7 @@ import thedarkcolour.modkit.data.model.SafeItemModelBuilder;
 
 import java.util.function.Consumer;
 
+@SuppressWarnings("UnusedReturnValue")
 public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     private final boolean generate3dBlockItems;
     private final boolean generate2dItems;
@@ -70,8 +71,8 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     }
 
     // Makes a 2d single layer item like hopper, gold ingot, or redstone dust for item model
-    public void generic2d(RegistryObject<? extends Item> supplier) {
-        generic2d(supplier.getId());
+    public SafeItemModelBuilder generic2d(RegistryObject<? extends Item> supplier) {
+        return generic2d(supplier.getId());
     }
 
     public SafeItemModelBuilder generic2d(ResourceLocation item) {
@@ -81,34 +82,34 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     }
 
     // Makes a 2d single layer item with special rotations like pickaxe or sword for item model
-    public void handheld(RegistryObject<? extends Item> supplier) {
-        handheld(supplier.getId());
+    public SafeItemModelBuilder handheld(RegistryObject<? extends Item> supplier) {
+        return handheld(supplier.getId());
     }
 
-    public void handheld(ResourceLocation id) {
+    public SafeItemModelBuilder handheld(ResourceLocation id) {
         String path = id.getPath();
 
         // make a json file in model/items/ + path
-        getBuilder(path)
+        return getBuilder(path)
                 .parent(new ModelFile.UncheckedModelFile("item/handheld")) // handheld
                 .texture("layer0", new ResourceLocation(id.getNamespace(), "item/" + path));
     }
 
     // Makes a 3d cube of a block for item model
-    public void generic3d(RegistryObject<? extends Item> supplier) {
+    public SafeItemModelBuilder generic3d(RegistryObject<? extends Item> supplier) {
         String path = supplier.getId().getPath();
-        withExistingParent(path, new ResourceLocation(supplier.getId().getNamespace(), "block/" + path));
+        return withExistingParent(path, new ResourceLocation(supplier.getId().getNamespace(), "block/" + path));
     }
 
-    public void generic3d(ResourceLocation id) {
-        withExistingParent(id.getPath(), new ResourceLocation(id.getNamespace(), "block/" + id));
+    public SafeItemModelBuilder generic3d(ResourceLocation id) {
+        return withExistingParent(id.getPath(), new ResourceLocation(id.getNamespace(), "block/" + id));
     }
 
-    private void spawnEgg(RegistryObject<? extends Item> supplier) {
-        spawnEgg(supplier.getId());
+    private SafeItemModelBuilder spawnEgg(RegistryObject<? extends Item> supplier) {
+        return spawnEgg(supplier.getId());
     }
 
-    private void spawnEgg(ResourceLocation id) {
-        getBuilder(id.getPath()).parent(new ModelFile.UncheckedModelFile("item/template_spawn_egg"));
+    private SafeItemModelBuilder spawnEgg(ResourceLocation id) {
+        return getBuilder(id.getPath()).parent(new ModelFile.UncheckedModelFile("item/template_spawn_egg"));
     }
 }
