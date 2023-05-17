@@ -1,7 +1,11 @@
 package thedarkcolour.modkit;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraftforge.event.CreativeModeTabEvent;
+import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
@@ -29,5 +33,18 @@ public class ModKit {
     public ModKit() {
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modBus);
+        modBus.addListener(ModKit::addCreativeTab);
+    }
+
+    private static void addCreativeTab(CreativeModeTabEvent.Register event) {
+        event.registerCreativeModeTab(new ResourceLocation(ModKit.ID, ModKit.ID), builder -> {
+            builder.icon(() -> new ItemStack(CLONE_WAND.get()));
+            builder.displayItems((params, output) -> {
+                output.accept(FILL_WAND.get());
+                output.accept(CLEAR_WAND.get());
+                output.accept(DISTANCE_WAND.get());
+                output.accept(CLONE_WAND.get());
+            });
+        });
     }
 }
