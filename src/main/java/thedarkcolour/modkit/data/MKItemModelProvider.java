@@ -102,7 +102,8 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     }
 
     public SafeItemModelBuilder generic3d(ResourceLocation id) {
-        return withExistingParent(id.getPath(), new ResourceLocation(id.getNamespace(), "block/" + id));
+        String path = id.getPath();
+        return withExistingParent(path, new ResourceLocation(id.getNamespace(), "block/" + path));
     }
 
     private SafeItemModelBuilder spawnEgg(RegistryObject<? extends Item> supplier) {
