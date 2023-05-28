@@ -1,20 +1,15 @@
 package thedarkcolour.modkit.data;
 
 import net.minecraft.data.PackOutput;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentContents;
-import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.CreativeModeTabRegistry;
 import net.minecraftforge.common.data.LanguageProvider;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.commons.lang3.text.WordUtils;
 import org.jetbrains.annotations.Nullable;
@@ -26,6 +21,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * English language generation.
+ */
 @SuppressWarnings({"unchecked", "deprecation"})
 public class MKEnglishProvider extends LanguageProvider {
     private static final Field FIELD_DATA;
@@ -51,12 +49,12 @@ public class MKEnglishProvider extends LanguageProvider {
 
         // Default handlers
         this.registryObjectHandlers = new HashMap<>();
-        addRegistryObjectHandler(Block.class, Block::getDescriptionId);
-        addRegistryObjectHandler(Item.class, Item::getDescriptionId);
-        addRegistryObjectHandler(EntityType.class, EntityType::getDescriptionId);
-        addRegistryObjectHandler(MobEffect.class, MobEffect::getDescriptionId);
-        addRegistryObjectHandler(Enchantment.class, Enchantment::getDescriptionId);
-        addRegistryObjectHandler(ItemStack.class, ItemStack::getDescriptionId);
+        addTranslationHandler(Block.class, Block::getDescriptionId);
+        addTranslationHandler(Item.class, Item::getDescriptionId);
+        addTranslationHandler(EntityType.class, EntityType::getDescriptionId);
+        addTranslationHandler(MobEffect.class, MobEffect::getDescriptionId);
+        addTranslationHandler(Enchantment.class, Enchantment::getDescriptionId);
+        addTranslationHandler(ItemStack.class, ItemStack::getDescriptionId);
     }
 
     @Override
@@ -99,7 +97,7 @@ public class MKEnglishProvider extends LanguageProvider {
     }
 
     /**
-     * If you have a registry object not included by default for adding translation keys,
+     * If you have a translatable object not included by default for adding translation keys,
      * add a mapping function here so that {@link #add(Object, String)} can properly add
      * translation keys for your specific type of registry object.
      *
@@ -107,8 +105,17 @@ public class MKEnglishProvider extends LanguageProvider {
      * @param translationKeys The mapping function (ex. Block.getDescriptionId)
      * @param <T> The generic type for the registry object to make the compiler happy
      */
-    public <T> void addRegistryObjectHandler(Class<T> type, Function<T, String> translationKeys) {
+    public <T> void addTranslationHandler(Class<T> type, Function<T, String> translationKeys) {
         registryObjectHandlers.put(type, (Function<Object, String>) translationKeys);
+    }
+
+    /**
+     * If your mod adds its own registry, you can register it here so that English names
+     * will be automatically generated for its members.
+     *
+     */
+    public void addRegistryForGeneration(IForgeRegistry<?> registry) {
+
     }
 
     public void add(Object key, String name) {

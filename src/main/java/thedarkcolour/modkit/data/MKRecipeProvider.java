@@ -11,10 +11,12 @@ import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -63,22 +65,25 @@ public class MKRecipeProvider extends RecipeProvider {
         recipe.accept(builder);
         builder.save(writer);
     }
+    public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+        shapelessCrafting(category, new ItemStack(result, resultCount, null), ingredients);
+    }
+
 
     /**
      * Generates a shapeless recipe with a list of ingredients (can be a mix of ItemLike, Ingredient, and/or TagKey)
      * Make sure that you call "unlockedBy" in your recipe lambda
      * @param category
      * @param result
-     * @param resultCount
-     * @param ingredients
+     * @param ingredients Can be ItemLike, Ingredient, or TagKey<Item>
      *
      * @throws IllegalArgumentException if any element of {@code ingredients} is not ItemLike, Ingredient, or TagKey
      */
     @SuppressWarnings("unchecked")
-    public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+    private void shapelessCrafting(RecipeCategory category, ItemStack result, Object... ingredients) {
         Preconditions.checkNotNull(writer);
 
-        ShapelessRecipeBuilder shapeless = new ShapelessRecipeBuilder(category, result, resultCount);
+        NbtShapelessRecipeBuilder shapeless = new NbtShapelessRecipeBuilder(category, result.getItem(), result.getCount(), result.getTag());
         boolean noCriterion = true;
 
         for (Object ingredient : ingredients) {
@@ -99,7 +104,7 @@ public class MKRecipeProvider extends RecipeProvider {
                     noCriterion = false;
                 }
             } else if (ingredient instanceof Ingredient ing) {
-               shapeless.requires(ing);
+                shapeless.requires(ing);
             } else {
                 throw nonIngredientArgument(ingredient);
             }
