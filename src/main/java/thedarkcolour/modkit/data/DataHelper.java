@@ -81,7 +81,7 @@ public class DataHelper {
      *                             this function.
      */
     public void createItemModels(boolean generate3dBlockItems, boolean generate2dItems, boolean generateSpawnEggs, @Nullable Consumer<MKItemModelProvider> addItemModels) {
-        checkNotCreated(blockModels, "Item models");
+        checkNotCreated(itemModels, "Item models");
 
         this.itemModels = new MKItemModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), modid, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
         event.getGenerator().addProvider(event.includeClient(), itemModels);
