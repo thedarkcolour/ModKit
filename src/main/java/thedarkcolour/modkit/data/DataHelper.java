@@ -53,11 +53,13 @@ public class DataHelper {
      *                        so you can add in names that were generated incorrectly or names for things like Creative Tabs.
      */
     @SuppressWarnings("SpellCheckingInspection")
-    public void createEnglish(boolean generateNames, @Nullable Consumer<MKEnglishProvider> addTranslations) {
+    public MKEnglishProvider createEnglish(boolean generateNames, @Nullable Consumer<MKEnglishProvider> addTranslations) {
         checkNotCreated(english, "English language");
 
         this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), modid, generateNames, addTranslations);
         event.getGenerator().addProvider(event.includeClient(), english);
+
+        return english;
     }
 
     /**
@@ -71,11 +73,13 @@ public class DataHelper {
      *                             or generate2dItems and you want to change which model an item is generated with, do so in
      *                             this function.
      */
-    public void createItemModels(boolean generate3dBlockItems, boolean generate2dItems, boolean generateSpawnEggs, @Nullable Consumer<MKItemModelProvider> addItemModels) {
+    public MKItemModelProvider createItemModels(boolean generate3dBlockItems, boolean generate2dItems, boolean generateSpawnEggs, @Nullable Consumer<MKItemModelProvider> addItemModels) {
         checkNotCreated(itemModels, "Item models");
 
         this.itemModels = new MKItemModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), modid, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
         event.getGenerator().addProvider(event.includeClient(), itemModels);
+
+        return this.itemModels;
     }
 
     /**
@@ -86,7 +90,7 @@ public class DataHelper {
      * @param addBlockModels Non-null function which receives the MKBlockModelProvider, which inherits methods from
      *                       BlockStateProvider and has some other methods to generate models.
      */
-    public void createBlockModels(Consumer<MKBlockModelProvider> addBlockModels) {
+    public MKBlockModelProvider createBlockModels(Consumer<MKBlockModelProvider> addBlockModels) {
         checkNotCreated(blockModels, "Block models");
 
         if (itemModels != null) {
@@ -97,6 +101,8 @@ public class DataHelper {
 
         this.blockModels = new MKBlockModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), this, modid, addBlockModels);
         event.getGenerator().addProvider(event.includeClient(), blockModels);
+
+        return blockModels;
     }
 
     /**
@@ -106,11 +112,13 @@ public class DataHelper {
      *                   built-in methods for common recipe types. If you need something more advanced, you may write
      *                   methods using the given finished recipe writer and call them in your addRecipes function.
      */
-    public void createRecipes(BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
+    public MKRecipeProvider createRecipes(BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
         checkNotCreated(recipes, "Recipes");
 
         this.recipes = new MKRecipeProvider(event.getGenerator().getPackOutput(), addRecipes);
         event.getGenerator().addProvider(event.includeServer(), recipes);
+
+        return recipes;
     }
 
     static <T> void forModRegistry(IForgeRegistry<T> registry, String modid, BiConsumer<ResourceLocation, T> consumer) {
