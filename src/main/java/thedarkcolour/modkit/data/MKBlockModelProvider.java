@@ -74,7 +74,7 @@ public class MKBlockModelProvider extends BlockStateProvider {
      * @deprecated Do not use this method, use the MKItemModelProvider from your DataHelper
      */
     @Override
-    @Deprecated()
+    @Deprecated
     public final ItemModelProvider itemModels() {
         try {
             if (!Class.forName(Thread.currentThread().getStackTrace()[2].getClassName()).isInstance(this)) {

@@ -130,8 +130,4 @@ public class DataHelper {
             throw new IllegalStateException(provider + " generation already created!");
         }
     }
-
-    //public void createLootTables(Consumer<Map<LootContextParamSet, LootTableSubProvider>> addSubProviders) {
-    //
-    //}
 }
