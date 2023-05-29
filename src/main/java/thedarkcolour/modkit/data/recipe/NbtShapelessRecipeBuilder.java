@@ -4,11 +4,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRewards;
-import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.advancements.RequirementsStrategy;
 import net.minecraft.advancements.critereon.RecipeUnlockedTrigger;
 import net.minecraft.data.recipes.FinishedRecipe;
-import net.minecraft.data.recipes.RecipeBuilder;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -17,7 +15,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -28,22 +25,11 @@ import java.util.function.Consumer;
  * Same as regular ShapelessRecipeBuilder but you can add an NBT tag to the crafting result,
  * which is supported by Forge but is not included in Minecraft's data generation.
  */
-public class NbtShapelessRecipeBuilder implements RecipeBuilder {
-    private final RecipeCategory category;
-    private final Item result;
-    private final int resultCount;
-    @Nullable
-    private final CompoundTag resultNbt;
+public class NbtShapelessRecipeBuilder extends NbtResultRecipe<NbtShapelessRecipeBuilder> {
     private final List<Ingredient> ingredients = new ArrayList<>();
-    private final Advancement.Builder advancement = Advancement.Builder.advancement();
-    @Nullable
-    private String group;
 
     public NbtShapelessRecipeBuilder(RecipeCategory category, Item result, int resultCount, @Nullable CompoundTag resultNbt) {
-        this.category = category;
-        this.result = result;
-        this.resultCount = resultCount;
-        this.resultNbt = resultNbt;
+        super(category, result, resultCount, resultNbt);
     }
 
     public static NbtShapelessRecipeBuilder shapeless(RecipeCategory category, ItemLike result) {
@@ -60,15 +46,6 @@ public class NbtShapelessRecipeBuilder implements RecipeBuilder {
 
     public static NbtShapelessRecipeBuilder shapeless(RecipeCategory category, ItemLike result, int resultCount, CompoundTag tag) {
         return new NbtShapelessRecipeBuilder(category, result.asItem(), resultCount, tag);
-    }
-
-    public static String getCategoryName(RecipeCategory category) {
-        return switch (category) {
-            case BUILDING_BLOCKS -> "building";
-            case TOOLS, COMBAT -> "equipment";
-            case REDSTONE -> "redstone";
-            default -> "misc";
-        };
     }
 
     public NbtShapelessRecipeBuilder requires(TagKey<Item> tag) {
@@ -96,33 +73,10 @@ public class NbtShapelessRecipeBuilder implements RecipeBuilder {
     }
 
     @Override
-    public NbtShapelessRecipeBuilder unlockedBy(String name, CriterionTriggerInstance criterionTrigger) {
-        this.advancement.addCriterion(name, criterionTrigger);
-        return this;
-    }
-
-    @Override
-    public NbtShapelessRecipeBuilder group(@Nullable String group) {
-        this.group = group;
-        return this;
-    }
-
-    @Override
-    public Item getResult() {
-        return result;
-    }
-
-    @Override
     public void save(Consumer<FinishedRecipe> writer, ResourceLocation id) {
         ensureValid(id);
         advancement.parent(ROOT_RECIPE_ADVANCEMENT).addCriterion("has_the_recipe", RecipeUnlockedTrigger.unlocked(id)).rewards(AdvancementRewards.Builder.recipe(id)).requirements(RequirementsStrategy.OR);
-        writer.accept(new Result(id, this.result, resultCount, resultNbt, this.group, this.category, this.ingredients, this.advancement, id.withPrefix("recipes/" + this.category.getFolderName() + "/")));
-    }
-
-    private void ensureValid(ResourceLocation id) {
-        if (this.advancement.getCriteria().isEmpty()) {
-            throw new IllegalStateException("Now way of obtaining recipe " + id);
-        }
+        writer.accept(new Result(id, category, this.result, resultCount, resultNbt, this.group, this.ingredients, this.advancement, id.withPrefix("recipes/" + this.category.getFolderName() + "/")));
     }
 
     public static class Result implements FinishedRecipe {
@@ -138,7 +92,7 @@ public class NbtShapelessRecipeBuilder implements RecipeBuilder {
         private final Advancement.Builder advancement;
         private final ResourceLocation advancementId;
 
-        public Result(ResourceLocation id, Item result, int resultCount, CompoundTag resultNbt, String group, RecipeCategory category, List<Ingredient> ingredients, Advancement.Builder advancement, ResourceLocation advancementId) {
+        public Result(ResourceLocation id, RecipeCategory category, Item result, int resultCount, @Nullable CompoundTag resultNbt, @Nullable String group, List<Ingredient> ingredients, Advancement.Builder advancement, ResourceLocation advancementId) {
             this.id = id;
             this.category = category;
             this.result = result;
@@ -164,17 +118,7 @@ public class NbtShapelessRecipeBuilder implements RecipeBuilder {
             }
 
             json.add("ingredients", array);
-            JsonObject resultObj = new JsonObject();
-            resultObj.addProperty("item", ForgeRegistries.ITEMS.getKey(this.result).toString());
-
-            if (resultCount > 1) {
-                resultObj.addProperty("count", resultCount);
-            }
-            if (resultNbt != null) {
-                resultObj.addProperty("nbt", resultNbt.getAsString());
-            }
-
-            json.add("result", resultObj);
+            json.add("result", serializeResult(result, resultCount, resultNbt));
         }
 
         @Override

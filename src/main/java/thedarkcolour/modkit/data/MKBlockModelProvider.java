@@ -4,12 +4,14 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.client.model.generators.BlockModelBuilder;
+import net.minecraftforge.client.model.generators.BlockModelProvider;
 import net.minecraftforge.client.model.generators.BlockStateProvider;
 import net.minecraftforge.client.model.generators.ItemModelProvider;
 import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.registries.ForgeRegistries;
+import thedarkcolour.modkit.data.model.SafeBlockModelProvider;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -18,6 +20,8 @@ public class MKBlockModelProvider extends BlockStateProvider {
     private final Lazy<MKItemModelProvider> itemModels;
     private final String modid;
     private final Consumer<MKBlockModelProvider> addBlockModels;
+
+    private final SafeBlockModelProvider blockModels;
 
     public MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, DataHelper dataHelper, String modid, Consumer<MKBlockModelProvider> addBlockModels) {
         super(output, modid, existingFileHelper);
@@ -30,6 +34,7 @@ public class MKBlockModelProvider extends BlockStateProvider {
         });
         this.modid = modid;
         this.addBlockModels = addBlockModels;
+        this.blockModels = new SafeBlockModelProvider(output, modid, existingFileHelper);
     }
 
     public ModelFile.UncheckedModelFile file(ResourceLocation resourceLoc) {
@@ -84,6 +89,11 @@ public class MKBlockModelProvider extends BlockStateProvider {
             throw new RuntimeException(e);
         }
         return super.itemModels();
+    }
+
+    @Override
+    public BlockModelProvider models() {
+        return blockModels;
     }
 
     @Override

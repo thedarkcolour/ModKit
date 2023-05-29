@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    },
+    {
+      "item": "testmod:orange"
+    }
+  ],
+  "result": {
+    "item": "testmod:orange_block"
+  }
+}

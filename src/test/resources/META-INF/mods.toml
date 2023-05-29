@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[45,)"
+license='MIT License'
+
+[[mods]]
+modId="testmod"
+version="${file.jarVersion}"
+displayName="TestMod"
+credits=""
+authors="TheDarkColour"
+description='''
+Blah
+'''
+# No reason to bother with dependencies if I'm in test environment

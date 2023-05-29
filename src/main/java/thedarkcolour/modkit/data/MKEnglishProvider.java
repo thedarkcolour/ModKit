@@ -91,7 +91,7 @@ public class MKEnglishProvider extends LanguageProvider {
     @Override
     public void add(String key, String value) {
         String old = data.put(key, value);
-        if (old != null) {
+        if (old != null && !old.equals(value)) {
             ModKit.LOGGER.warn("Overridden/duplicate translation key '" + key + "' (old: '" + old + "' new: '" + value + "')");
         }
     }

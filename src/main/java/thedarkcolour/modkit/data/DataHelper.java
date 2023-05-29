@@ -1,14 +1,11 @@
 package thedarkcolour.modkit.data;
 
-import com.google.common.base.Preconditions;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.data.event.GatherDataEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.IForgeRegistry;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.ModKit;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -16,6 +13,7 @@ import java.util.function.Consumer;
 /**
  * Use this in your event handler for GatherDataEvent. To avoid requiring ModKit in-game,
  * GatherDataEvent should be in a separate class from mod code. See the examples package.
+ * For a more detailed example, check the "src/test/" directory on ModKit's GitHub.
  * <p>
  * Methods which specify what to generate follow the naming scheme "createBlah" and always
  * have a consumer (usually nullable) as their last parameter which gets run at the appropriate
@@ -35,15 +33,8 @@ public class DataHelper {
     protected MKItemModelProvider itemModels;
     @Nullable
     protected MKBlockModelProvider blockModels;
-
     @Nullable
     protected MKRecipeProvider recipes;
-    //@Nullable
-    //private MKLootTableProvider lootTables;
-    //@Nullable
-    //private MKBlockTagProvider blockTags;
-    //@Nullable
-    //private MKItemTagProvider itemTags;
 
     public DataHelper(String modid, GatherDataEvent event) {
         this.modid = modid;
@@ -70,7 +61,7 @@ public class DataHelper {
     }
 
     /**
-     * Generates item models for your mod.
+     * Generates item models for your mod. If you also have Block Models, call this AFTER calling {@link #createBlockModels}
      *
      * @param generate3dBlockItems If true, BlockItems are given generic 3D item models (ex. dirt, diamond block)
      * @param generate2dItems      If true, non-BlockItems are given generic 2D item models (ex. gold ingot)
@@ -98,7 +89,14 @@ public class DataHelper {
     public void createBlockModels(Consumer<MKBlockModelProvider> addBlockModels) {
         checkNotCreated(blockModels, "Block models");
 
+        if (itemModels != null) {
+            // Ex. Item models which use block models as parents will log errors that those block models don't exist,
+            // because data providers run in creation order so block models wouldn't have generated yet.
+            ModKit.LOGGER.warn("Item model generation was added BEFORE block model generation; this is incorrect, expect some false errors");
+        }
+
         this.blockModels = new MKBlockModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), this, modid, addBlockModels);
+        event.getGenerator().addProvider(event.includeClient(), blockModels);
     }
 
     /**

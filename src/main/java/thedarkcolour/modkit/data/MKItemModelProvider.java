@@ -17,6 +17,7 @@ import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.ModKit;
 import thedarkcolour.modkit.data.model.SafeItemModelBuilder;
 
 import java.util.ArrayList;
@@ -131,5 +132,15 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
 
     private SafeItemModelBuilder spawnEgg(ResourceLocation id) {
         return getBuilder(id.getPath()).parent(new ModelFile.UncheckedModelFile("item/template_spawn_egg"));
+    }
+
+    @Override
+    public SafeItemModelBuilder withExistingParent(String name, ResourceLocation parent) {
+        try {
+            return super.withExistingParent(name, parent);
+        } catch (IllegalStateException e) {
+            ModKit.LOGGER.error(e.getMessage());
+            return getBuilder(name).parent(new ModelFile.UncheckedModelFile(parent));
+        }
     }
 }
