@@ -23,7 +23,7 @@ public class MKBlockModelProvider extends BlockStateProvider {
 
     private final SafeBlockModelProvider blockModels;
 
-    public MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, DataHelper dataHelper, String modid, Consumer<MKBlockModelProvider> addBlockModels) {
+    protected MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, DataHelper dataHelper, String modid, Consumer<MKBlockModelProvider> addBlockModels) {
         super(output, modid, existingFileHelper);
         this.itemModels = Lazy.of(() -> {
             if (dataHelper.itemModels == null) {

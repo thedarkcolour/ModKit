@@ -18,6 +18,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
+import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.MKRecipeProvider;
 
@@ -46,12 +47,16 @@ public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuild
         return new NbtShapedRecipeBuilder(category, result, count, nbt);
     }
 
-    public NbtShapedRecipeBuilder define(char symbol, TagKey<Item> tag) {
-        return define(symbol, Ingredient.of(tag));
+    public NbtShapedRecipeBuilder define(char symbol, RegistryObject<? extends ItemLike> item) {
+        return define(symbol, item.get());
     }
 
     public NbtShapedRecipeBuilder define(char symbol, ItemLike item) {
         return define(symbol, Ingredient.of(item));
+    }
+
+    public NbtShapedRecipeBuilder define(char symbol, TagKey<Item> tag) {
+        return define(symbol, Ingredient.of(tag));
     }
 
     public NbtShapedRecipeBuilder define(char symbol, Ingredient ingredient) {

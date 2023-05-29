@@ -92,7 +92,7 @@ public class MKEnglishProvider extends LanguageProvider {
     public void add(String key, String value) {
         String old = data.put(key, value);
         if (old != null && !old.equals(value)) {
-            ModKit.LOGGER.warn("Overridden/duplicate translation key '" + key + "' (old: '" + old + "' new: '" + value + "')");
+            ModKit.LOGGER.info("Overridden/duplicate translation key '" + key + "' (old: '" + old + "' new: '" + value + "')");
         }
     }
 
@@ -112,10 +112,10 @@ public class MKEnglishProvider extends LanguageProvider {
     /**
      * If your mod adds its own registry, you can register it here so that English names
      * will be automatically generated for its members.
-     *
+     * TODO
      */
     public void addRegistryForGeneration(IForgeRegistry<?> registry) {
-
+        throw new UnsupportedOperationException("TODO");
     }
 
     public void add(Object key, String name) {

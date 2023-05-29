@@ -8,7 +8,7 @@ import java.util.concurrent.CompletableFuture;
 public class MKTagProvider implements DataProvider {
     private final String modid;
 
-    public MKTagProvider(String modid) {
+    protected MKTagProvider(String modid) {
         this.modid = modid;
     }
 
