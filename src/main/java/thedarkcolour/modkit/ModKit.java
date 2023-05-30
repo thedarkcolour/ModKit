@@ -59,9 +59,11 @@ public class ModKit {
         if (allTabs.indexOf(event.getTab()) + 1 == allTabs.size()) {
             MKUtils.forInDevMods(modInfo -> {
                 MKUtils.forModRegistry(ForgeRegistries.ITEMS, modInfo.getModId(), (id, item) -> {
-                    for (var entry : event.getEntries()) {
-                        if (entry.getKey().getItem() == item) {
-                            return;
+                    for (var tab : allTabs) {
+                        for (var entry : tab.getDisplayItems()) {
+                            if (entry.getItem() == item) {
+                                return;
+                            }
                         }
                     }
 
