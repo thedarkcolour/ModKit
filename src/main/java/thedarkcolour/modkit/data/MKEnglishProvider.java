@@ -13,6 +13,7 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.commons.lang3.text.WordUtils;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.MKUtils;
 import thedarkcolour.modkit.ModKit;
 
 import java.lang.reflect.Field;
@@ -60,19 +61,19 @@ public class MKEnglishProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         if (generateNames) {
-            DataHelper.forModRegistry(ForgeRegistries.ITEMS, modid, (id, item) -> {
+            MKUtils.forModRegistry(ForgeRegistries.ITEMS, modid, (id, item) -> {
                 String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                 add(item, name);
             });
-            DataHelper.forModRegistry(ForgeRegistries.BLOCKS, modid, (id, block) -> {
+            MKUtils.forModRegistry(ForgeRegistries.BLOCKS, modid, (id, block) -> {
                 String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                 add(block, name);
             });
-            DataHelper.forModRegistry(ForgeRegistries.ENTITY_TYPES, modid, (id, entityType) -> {
+            MKUtils.forModRegistry(ForgeRegistries.ENTITY_TYPES, modid, (id, entityType) -> {
                 String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                 add(entityType, name);
             });
-            DataHelper.forModRegistry(ForgeRegistries.ENCHANTMENTS, modid, (id, enchantment) -> {
+            MKUtils.forModRegistry(ForgeRegistries.ENCHANTMENTS, modid, (id, enchantment) -> {
                 String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                 add(enchantment, name);
             });

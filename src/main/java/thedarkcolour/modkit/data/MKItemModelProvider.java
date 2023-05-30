@@ -17,6 +17,7 @@ import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.MKUtils;
 import thedarkcolour.modkit.ModKit;
 import thedarkcolour.modkit.data.model.SafeItemModelBuilder;
 
@@ -136,7 +137,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     @Override
     protected void registerModels() {
         if (generate3dBlockItems || generate2dItems || generateSpawnEggs) {
-            DataHelper.forModRegistry(ForgeRegistries.ITEMS, modid, (id, item) -> {
+            MKUtils.forModRegistry(ForgeRegistries.ITEMS, modid, (id, item) -> {
                 if (!excluded.contains(id)) {
                     if (generate3dBlockItems && item instanceof BlockItem) {
                         generic3d(id);

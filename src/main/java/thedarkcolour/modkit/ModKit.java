@@ -2,12 +2,14 @@ package thedarkcolour.modkit;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
 import net.minecraftforge.event.CreativeModeTabEvent;
-import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -35,6 +37,38 @@ public class ModKit {
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modBus);
         modBus.addListener(ModKit::addCreativeTab);
+        modBus.addListener(ModKit::postRegistry);
+        modBus.addListener(EventPriority.LOWEST, ModKit::postCreativeTabs);
+    }
+
+    private static void postRegistry(FMLLoadCompleteEvent event) {
+        MKUtils.forInDevMods(modInfo -> {
+            MKUtils.forModRegistry(ForgeRegistries.BLOCKS, modInfo.getModId(), (id, block) -> {
+                if (Item.BY_BLOCK.get(block) == null) {
+                    ModKit.LOGGER.warn("Block '{}' has no block item", id);
+                }
+            });
+            // Maybe something about entities without spawn eggs next?
+        });
+    }
+
+    private static void postCreativeTabs(CreativeModeTabEvent.BuildContents event) {
+        var allTabs = CreativeModeTabs.allTabs();
+
+        // only print errors on the last tab
+        if (allTabs.indexOf(event.getTab()) + 1 == allTabs.size()) {
+            MKUtils.forInDevMods(modInfo -> {
+                MKUtils.forModRegistry(ForgeRegistries.ITEMS, modInfo.getModId(), (id, item) -> {
+                    for (var entry : event.getEntries()) {
+                        if (entry.getKey().getItem() == item) {
+                            return;
+                        }
+                    }
+
+                    ModKit.LOGGER.warn("Item '{}' is not found in any creative tabs (will not show in JEI!)", id);
+                });
+            });
+        }
     }
 
     private static void addCreativeTab(CreativeModeTabEvent.Register event) {

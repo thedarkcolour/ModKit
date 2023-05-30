@@ -121,16 +121,6 @@ public class DataHelper {
         return recipes;
     }
 
-    static <T> void forModRegistry(IForgeRegistry<T> registry, String modid, BiConsumer<ResourceLocation, T> consumer) {
-        for (var entry : registry.getEntries()) {
-            var id = entry.getKey().location();
-
-            if (id.getNamespace().equals(modid)) {
-                consumer.accept(id, entry.getValue());
-            }
-        }
-    }
-
     private void checkNotCreated(@Nullable Object obj, String provider) {
         if (obj != null) {
             throw new IllegalStateException(provider + " generation already created!");
