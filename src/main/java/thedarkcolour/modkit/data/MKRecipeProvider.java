@@ -45,7 +45,6 @@ public class MKRecipeProvider extends RecipeProvider {
         this.writer = null;
     }
 
-    // Make sure that you call "unlockedBy" in your recipe lambda
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
         shapedCrafting(recipeId, category, result, 1, recipe);
     }
@@ -54,8 +53,31 @@ public class MKRecipeProvider extends RecipeProvider {
         shapedCrafting(recipeId, category, result, resultCount, null, recipe);
     }
 
-    // Make sure that you call "unlockedBy" in your recipe lambda
-    public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
+    public void shapedCrafting(RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
+        shapedCrafting(category, result, 1, recipe);
+    }
+
+    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, Consumer<NbtShapedRecipeBuilder> recipe) {
+        shapedCrafting(category, result, resultCount, null, recipe);
+    }
+
+    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
+        shapedCrafting(null, category, result, resultCount, resultNbt, recipe);
+    }
+
+    /**
+     * Generates a shaped recipe with the recipe layout defined by the {@code recipe} Consumer.
+     * Will make a best guess attempt for an unlockedBy criterion, but manually setting one
+     * in the Consumer may be preferable or required.
+     *
+     * @param recipeId    Recipe id to use when generating the recipe, or null for the default name.
+     * @param category    Recipe category for displaying in the green recipe book
+     * @param result      The result item
+     * @param resultCount The number of result items resulting from one craft of this recipe
+     * @param resultNbt   The NBT of the result item(s)
+     * @param recipe      Function, usually a lambda, which defines the recipe layout by calling define and key on the recipe builder.
+     */
+    public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
         Preconditions.checkNotNull(writer);
 
         NbtShapedRecipeBuilder builder = new NbtShapedRecipeBuilder(category, result, resultCount, resultNbt);
@@ -63,26 +85,11 @@ public class MKRecipeProvider extends RecipeProvider {
         if (builder.isMissingCriterion()) {
             builder.attemptAutoCriterion();
         }
-        builder.save(writer, recipeId);
-    }
-
-    // Make sure that you call "unlockedBy" in your recipe lambda
-    public void shapedCrafting(RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
-        shapedCrafting(category, result, 1, recipe);
-    }
-
-    // Make sure that you call "unlockedBy" in your recipe lambda
-    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, Consumer<NbtShapedRecipeBuilder> recipe) {
-        shapedCrafting(category, result, resultCount, null, recipe);
-    }
-
-    // Make sure that you call "unlockedBy" in your recipe lambda
-    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
-        Preconditions.checkNotNull(writer);
-
-        NbtShapedRecipeBuilder builder = new NbtShapedRecipeBuilder(category, result, resultCount, resultNbt);
-        recipe.accept(builder);
-        builder.save(writer);
+        if (recipeId != null) {
+            builder.save(writer, recipeId);
+        } else {
+            builder.save(writer);
+        }
     }
 
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
