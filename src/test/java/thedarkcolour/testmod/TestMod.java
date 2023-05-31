@@ -6,11 +6,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.Material;
+import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import thedarkcolour.testmod.data.DataGen;
 
 @Mod(TestMod.ID)
 public class TestMod {
@@ -31,5 +33,7 @@ public class TestMod {
 
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
+
+        modBus.addListener((GatherDataEvent event) -> DataGen.gatherData(event));
     }
 }

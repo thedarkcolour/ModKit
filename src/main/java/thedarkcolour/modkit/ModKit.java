@@ -52,6 +52,10 @@ public class ModKit {
         });
     }
 
+    /**
+     * Triggers upon first opening the Creative Menu. Warns about registered items which do not
+     * show in any creative tab, which means they will not show in JEI.
+     */
     private static void postCreativeTabs(CreativeModeTabEvent.BuildContents event) {
         var allTabs = CreativeModeTabs.allTabs();
 
