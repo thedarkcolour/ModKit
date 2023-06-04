@@ -34,6 +34,6 @@ public class TestMod {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
 
-        modBus.addListener((GatherDataEvent event) -> DataGen.gatherData(event));
+        modBus.addListener(DataGen::gatherData);
     }
 }

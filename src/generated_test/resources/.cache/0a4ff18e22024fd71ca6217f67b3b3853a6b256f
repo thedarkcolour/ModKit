@@ -1,3 +1,5 @@
-// 1.19.4	2023-05-28T19:15:55.6639346	ModKit Block Models for mod 'testmod'
+// 1.19.4	2023-06-04T09:52:07.3595676	ModKit Block Models for mod 'testmod'
+248bb8da675f40dd933a1895864035271dee2544 assets/testmod/blockstates/orange_block.json
 5b078c176f11315b05092e670a6c8edaceb13969 assets/testmod/blockstates/red_block.json
+7698fcc228917bd56d964f5a1b5b3b0883fb7f9f assets/testmod/models/block/orange_block.json
 81617e750db63c29c21d18dc9662990c01fb7dcd assets/testmod/models/block/red_block.json
