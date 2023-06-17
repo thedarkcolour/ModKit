@@ -1,14 +1,17 @@
 package thedarkcolour.modkit.data;
 
+import net.minecraft.data.DataProvider;
+import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.data.event.GatherDataEvent;
-import net.minecraftforge.registries.IForgeRegistry;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.ModKit;
 
+import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Use this in your event handler for GatherDataEvent. To avoid requiring ModKit in-game,
@@ -35,6 +38,8 @@ public class DataHelper {
     protected MKBlockModelProvider blockModels;
     @Nullable
     protected MKRecipeProvider recipes;
+    @Nullable
+    protected BiFunction<MKEnglishProvider, PackOutput, List<DataProvider>> addModonomiconBooks;
 
     public DataHelper(String modid, GatherDataEvent event) {
         this.modid = modid;
@@ -57,9 +62,31 @@ public class DataHelper {
         checkNotCreated(english, "English language");
 
         this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), modid, generateNames, addTranslations);
+
+        if (addModonomiconBooks != null) {
+            for (DataProvider book : addModonomiconBooks.apply(this.english, event.getGenerator().getPackOutput())) {
+                event.getGenerator().addProvider(true, book);
+            }
+        }
+
         event.getGenerator().addProvider(event.includeClient(), english);
 
         return english;
+    }
+
+    /**
+     * Use this to register your Modonomicon books before the language generation is created.
+     *
+     * @param customEnglish Whether you are calling {{@link #createEnglish(boolean, Consumer)}} later. If false,
+     *                      this method will use an MKEnglishProvider that doesn't generate names.
+     * @param addBooks Create your book providers here, return them as a list.
+     */
+    public void createModonomiconBooks(boolean customEnglish, BiFunction<MKEnglishProvider, PackOutput, List<DataProvider>> addBooks) {
+        this.addModonomiconBooks = addBooks;
+
+        if (!customEnglish) {
+            createEnglish(false, null);
+        }
     }
 
     /**
