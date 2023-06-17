@@ -1,12 +1,15 @@
 package thedarkcolour.modkit;
 
+import net.minecraft.Util;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
-import net.minecraftforge.event.CreativeModeTabEvent;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
@@ -27,16 +30,28 @@ public class ModKit {
     public static final Logger LOGGER = LoggerFactory.getLogger(ID);
 
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ID);
+    private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ID);
 
     public static final RegistryObject<Item> FILL_WAND = ITEMS.register("fill_wand", () -> new FillWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final RegistryObject<Item> CLEAR_WAND = ITEMS.register("clear_wand", () -> new ClearWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final RegistryObject<Item> DISTANCE_WAND = ITEMS.register("distance_wand", () -> new DistanceWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final RegistryObject<Item> CLONE_WAND = ITEMS.register("clone_wand", () -> new CloneWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
 
+    public static final RegistryObject<CreativeModeTab> MODKIT_TAB = CREATIVE_TABS.register(ID, () -> Util.make(new CreativeModeTab.Builder(CreativeModeTab.Row.TOP, 0), builder -> {
+        builder.icon(() -> new ItemStack(CLONE_WAND.get()));
+        builder.title(Component.translatable("itemGroup.modkit"));
+        builder.displayItems((params, output) -> {
+            output.accept(FILL_WAND.get());
+            output.accept(CLEAR_WAND.get());
+            output.accept(DISTANCE_WAND.get());
+            output.accept(CLONE_WAND.get());
+        });
+    }).build());
+
     public ModKit() {
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modBus);
-        modBus.addListener(ModKit::addCreativeTab);
+        CREATIVE_TABS.register(modBus);
         modBus.addListener(ModKit::postRegistry);
         modBus.addListener(EventPriority.LOWEST, ModKit::postCreativeTabs);
     }
@@ -56,7 +71,7 @@ public class ModKit {
      * Triggers upon first opening the Creative Menu. Warns about registered items which do not
      * show in any creative tab, which means they will not show in JEI.
      */
-    private static void postCreativeTabs(CreativeModeTabEvent.BuildContents event) {
+    private static void postCreativeTabs(BuildCreativeModeTabContentsEvent event) {
         var allTabs = CreativeModeTabs.allTabs();
 
         // only print errors on the last tab
@@ -75,18 +90,5 @@ public class ModKit {
                 });
             });
         }
-    }
-
-    private static void addCreativeTab(CreativeModeTabEvent.Register event) {
-        event.registerCreativeModeTab(new ResourceLocation(ModKit.ID, ModKit.ID), builder -> {
-            builder.icon(() -> new ItemStack(CLONE_WAND.get()));
-            builder.title(Component.translatable("itemGroup.modkit"));
-            builder.displayItems((params, output) -> {
-                output.accept(FILL_WAND.get());
-                output.accept(CLEAR_WAND.get());
-                output.accept(DISTANCE_WAND.get());
-                output.accept(CLONE_WAND.get());
-            });
-        });
     }
 }
