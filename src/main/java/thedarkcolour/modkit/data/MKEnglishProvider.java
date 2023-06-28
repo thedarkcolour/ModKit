@@ -13,8 +13,8 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.commons.lang3.text.WordUtils;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 import thedarkcolour.modkit.MKUtils;
-import thedarkcolour.modkit.ModKit;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -30,15 +30,17 @@ public class MKEnglishProvider extends LanguageProvider {
     private static final Field FIELD_DATA;
 
     private final String modid;
+    private final Logger logger;
     private final boolean generateNames;
     @Nullable
     private final Consumer<MKEnglishProvider> addNames;
     private final Map<String, String> data;
     private final Map<Class<?>, Function<Object, String>> registryObjectHandlers;
 
-    protected MKEnglishProvider(PackOutput output, String modid, boolean generateNames, @Nullable Consumer<MKEnglishProvider> addNames) {
+    protected MKEnglishProvider(PackOutput output, String modid, Logger logger, boolean generateNames, @Nullable Consumer<MKEnglishProvider> addNames) {
         super(output, modid, "en_us");
         this.modid = modid;
+        this.logger = logger;
         this.generateNames = generateNames;
         this.addNames = addNames;
 
@@ -93,7 +95,7 @@ public class MKEnglishProvider extends LanguageProvider {
     public void add(String key, String value) {
         String old = data.put(key, value);
         if (old != null && !old.equals(value)) {
-            ModKit.LOGGER.info("Overridden/duplicate translation key '" + key + "' (old: '" + old + "' new: '" + value + "')");
+            logger.info("Overridden/duplicate translation key '" + key + "' (old: '" + old + "' new: '" + value + "')");
         }
     }
 

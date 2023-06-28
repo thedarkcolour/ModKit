@@ -3,11 +3,15 @@ package thedarkcolour.modkit.data.model;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.model.generators.BlockModelBuilder;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import org.slf4j.Logger;
 import thedarkcolour.modkit.ModKit;
 
 public class SafeBlockModelBuilder extends BlockModelBuilder {
-    public SafeBlockModelBuilder(ResourceLocation outputLocation, ExistingFileHelper existingFileHelper) {
+    private final Logger logger;
+
+    public SafeBlockModelBuilder(ResourceLocation outputLocation, Logger logger, ExistingFileHelper existingFileHelper) {
         super(outputLocation, existingFileHelper);
+        this.logger = logger;
     }
 
     // Ignore exceptions and generate models anyway
@@ -16,7 +20,7 @@ public class SafeBlockModelBuilder extends BlockModelBuilder {
         try {
             return super.texture(key, texture);
         } catch (IllegalArgumentException e) {
-            ModKit.LOGGER.error(e.getMessage());
+            logger.error(e.getMessage());
             textures.put(key, texture.toString());
             return this;
         }

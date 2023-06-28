@@ -8,13 +8,17 @@ import net.minecraftforge.client.model.generators.BlockModelBuilder;
 import net.minecraftforge.client.model.generators.BlockModelProvider;
 import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import org.slf4j.Logger;
 import thedarkcolour.modkit.ModKit;
 
 import java.util.concurrent.CompletableFuture;
 
 public class SafeBlockModelProvider extends BlockModelProvider {
-    public SafeBlockModelProvider(PackOutput output, String modid, ExistingFileHelper existingFileHelper) {
+    private final Logger logger;
+
+    public SafeBlockModelProvider(PackOutput output, String modid, Logger logger, ExistingFileHelper existingFileHelper) {
         super(output, modid, existingFileHelper);
+        this.logger = logger;
     }
 
     @Override
@@ -37,12 +41,12 @@ public class SafeBlockModelProvider extends BlockModelProvider {
         Preconditions.checkNotNull(path, "Path must not be null");
         ResourceLocation outputLoc = extendWithFolder(path.contains(":") ? new ResourceLocation(path) : new ResourceLocation(modid, path));
         this.existingFileHelper.trackGenerated(outputLoc, MODEL);
-        return generatedModels.computeIfAbsent(outputLoc, loc -> new SafeBlockModelBuilder(loc, existingFileHelper));
+        return generatedModels.computeIfAbsent(outputLoc, loc -> new SafeBlockModelBuilder(loc, logger, existingFileHelper));
     }
 
     @Override
     public BlockModelBuilder nested() {
-        return new SafeBlockModelBuilder(new ResourceLocation("dummy:dummy"), existingFileHelper);
+        return new SafeBlockModelBuilder(new ResourceLocation("dummy:dummy"), logger, existingFileHelper);
     }
 
     @Override
@@ -50,7 +54,7 @@ public class SafeBlockModelProvider extends BlockModelProvider {
         try {
             return super.withExistingParent(name, parent);
         } catch (IllegalStateException e) {
-            ModKit.LOGGER.error(e.getMessage());
+            logger.error(e.getMessage());
             return getBuilder(name).parent(new ModelFile.UncheckedModelFile(parent));
         }
     }

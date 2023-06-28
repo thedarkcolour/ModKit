@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.model.generators.ModelBuilder;
 import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import org.slf4j.Logger;
 import thedarkcolour.modkit.ModKit;
 
 import java.util.ArrayList;
@@ -15,10 +16,12 @@ import java.util.List;
 import java.util.Map;
 
 public class SafeItemModelBuilder extends ModelBuilder<SafeItemModelBuilder> {
+    private final Logger logger;
     protected List<OverrideBuilder> overrides = new ArrayList<>();
 
-    public SafeItemModelBuilder(ResourceLocation outputLocation, ExistingFileHelper existingFileHelper) {
+    public SafeItemModelBuilder(ResourceLocation outputLocation, Logger logger, ExistingFileHelper existingFileHelper) {
         super(outputLocation, existingFileHelper);
+        this.logger = logger;
     }
 
     public OverrideBuilder override() {
@@ -56,7 +59,7 @@ public class SafeItemModelBuilder extends ModelBuilder<SafeItemModelBuilder> {
         try {
             return super.texture(key, texture);
         } catch (IllegalArgumentException e) {
-            ModKit.LOGGER.error(e.getMessage());
+            logger.error(e.getMessage());
             textures.put(key, texture.toString());
             return this;
         }

@@ -5,6 +5,8 @@ import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraftforge.data.event.GatherDataEvent;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import thedarkcolour.modkit.ModKit;
 
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.LogManager;
 
 /**
  * Use this in your event handler for GatherDataEvent. To avoid requiring ModKit in-game,
@@ -29,6 +32,7 @@ import java.util.function.Function;
 public class DataHelper {
     protected final String modid;
     protected final GatherDataEvent event;
+    private final Logger logger;
 
     @Nullable
     protected MKEnglishProvider english;
@@ -44,6 +48,7 @@ public class DataHelper {
     public DataHelper(String modid, GatherDataEvent event) {
         this.modid = modid;
         this.event = event;
+        this.logger = LoggerFactory.getLogger(ModKit.ID + "/" + modid);
     }
 
     /**
@@ -61,7 +66,7 @@ public class DataHelper {
     public MKEnglishProvider createEnglish(boolean generateNames, @Nullable Consumer<MKEnglishProvider> addTranslations) {
         checkNotCreated(english, "English language");
 
-        this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), modid, generateNames, addTranslations);
+        this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), modid, logger, generateNames, addTranslations);
 
         if (addModonomiconBooks != null) {
             for (DataProvider book : addModonomiconBooks.apply(this.english, event.getGenerator().getPackOutput())) {
@@ -103,7 +108,7 @@ public class DataHelper {
     public MKItemModelProvider createItemModels(boolean generate3dBlockItems, boolean generate2dItems, boolean generateSpawnEggs, @Nullable Consumer<MKItemModelProvider> addItemModels) {
         checkNotCreated(itemModels, "Item models");
 
-        this.itemModels = new MKItemModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), modid, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
+        this.itemModels = new MKItemModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), modid, logger, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
         event.getGenerator().addProvider(event.includeClient(), itemModels);
 
         return this.itemModels;
@@ -123,7 +128,7 @@ public class DataHelper {
         if (itemModels != null) {
             // Ex. Item models which use block models as parents will log errors that those block models don't exist,
             // because data providers run in creation order so block models wouldn't have generated yet.
-            ModKit.LOGGER.warn("Item model generation was added BEFORE block model generation; this is incorrect, expect some false errors");
+            logger.warn("Item model generation was added BEFORE block model generation; this is incorrect, expect some false errors");
         }
 
         this.blockModels = new MKBlockModelProvider(event.getGenerator().getPackOutput(), event.getExistingFileHelper(), this, modid, addBlockModels);

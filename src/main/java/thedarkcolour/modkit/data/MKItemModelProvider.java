@@ -17,8 +17,8 @@ import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 import thedarkcolour.modkit.MKUtils;
-import thedarkcolour.modkit.ModKit;
 import thedarkcolour.modkit.data.model.SafeItemModelBuilder;
 
 import java.util.ArrayList;
@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 
 @SuppressWarnings("UnusedReturnValue")
 public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
+    private final Logger logger;
     private final boolean generate3dBlockItems;
     private final boolean generate2dItems;
     private final boolean generateSpawnEggs;
@@ -38,12 +39,14 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     protected MKItemModelProvider(PackOutput output,
                                   ExistingFileHelper helper,
                                   String modid,
+                                  Logger logger,
                                   boolean generate3dBlockItems,
                                   boolean generate2dItems,
                                   boolean generateSpawnEggs,
                                   @Nullable Consumer<MKItemModelProvider> addItemModels) {
-        super(output, modid, "item", SafeItemModelBuilder::new, helper);
+        super(output, modid, "item", (outputLoc, efh) -> new SafeItemModelBuilder(outputLoc, logger, efh), helper);
 
+        this.logger = logger;
         this.generate3dBlockItems = generate3dBlockItems;
         this.generate2dItems = generate2dItems;
         this.generateSpawnEggs = generateSpawnEggs;
@@ -124,7 +127,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
         try {
             return super.withExistingParent(name, parent);
         } catch (IllegalStateException e) {
-            ModKit.LOGGER.error(e.getMessage());
+            logger.error(e.getMessage());
             return getBuilder(name).parent(new ModelFile.UncheckedModelFile(parent));
         }
     }
