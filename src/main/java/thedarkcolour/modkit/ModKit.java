@@ -3,7 +3,6 @@ package thedarkcolour.modkit;
 import net.minecraft.Util;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -37,22 +36,26 @@ public class ModKit {
     public static final RegistryObject<Item> DISTANCE_WAND = ITEMS.register("distance_wand", () -> new DistanceWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final RegistryObject<Item> CLONE_WAND = ITEMS.register("clone_wand", () -> new CloneWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
 
-    public static final RegistryObject<CreativeModeTab> MODKIT_TAB = CREATIVE_TABS.register(ID, () -> Util.make(new CreativeModeTab.Builder(CreativeModeTab.Row.TOP, 0), builder -> {
-        builder.icon(() -> new ItemStack(CLONE_WAND.get()));
-        builder.title(Component.translatable("itemGroup.modkit"));
-        builder.displayItems((params, output) -> {
-            output.accept(FILL_WAND.get());
-            output.accept(CLEAR_WAND.get());
-            output.accept(DISTANCE_WAND.get());
-            output.accept(CLONE_WAND.get());
-        });
-    }).build());
+    static {
+        CREATIVE_TABS.register(ID, () -> Util.make(new CreativeModeTab.Builder(CreativeModeTab.Row.TOP, 0), builder -> {
+            builder.icon(() -> new ItemStack(CLONE_WAND.get()));
+            builder.title(Component.translatable("itemGroup.modkit"));
+            builder.displayItems((params, output) -> {
+                output.accept(FILL_WAND.get());
+                output.accept(CLEAR_WAND.get());
+                output.accept(DISTANCE_WAND.get());
+                output.accept(CLONE_WAND.get());
+            });
+            builder.withTabsBefore(CreativeModeTabs.SPAWN_EGGS);
+        }).build());
+    }
 
     public ModKit() {
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modBus);
         CREATIVE_TABS.register(modBus);
         modBus.addListener(ModKit::postRegistry);
+        modBus.addListener(ModKitDataGen::gatherData);
         modBus.addListener(EventPriority.LOWEST, ModKit::postCreativeTabs);
     }
 
@@ -76,19 +79,17 @@ public class ModKit {
 
         // only print errors on the last tab
         if (allTabs.indexOf(event.getTab()) + 1 == allTabs.size()) {
-            MKUtils.forInDevMods(modInfo -> {
-                MKUtils.forModRegistry(ForgeRegistries.ITEMS, modInfo.getModId(), (id, item) -> {
-                    for (var tab : allTabs) {
-                        for (var entry : tab.getDisplayItems()) {
-                            if (entry.getItem() == item) {
-                                return;
-                            }
+            MKUtils.forInDevMods(modInfo -> MKUtils.forModRegistry(ForgeRegistries.ITEMS, modInfo.getModId(), (id, item) -> {
+                for (var tab : allTabs) {
+                    for (var entry : tab.getDisplayItems()) {
+                        if (entry.getItem() == item) {
+                            return;
                         }
                     }
+                }
 
-                    ModKit.LOGGER.warn("Item '{}' is not found in any creative tabs (will not show in JEI!)", id);
-                });
-            });
+                ModKit.LOGGER.warn("Item '{}' is not found in any creative tabs (will not show in JEI!)", id);
+            }));
         }
     }
 }

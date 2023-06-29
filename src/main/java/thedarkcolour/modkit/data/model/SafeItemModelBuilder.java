@@ -8,13 +8,13 @@ import net.minecraftforge.client.model.generators.ModelBuilder;
 import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import org.slf4j.Logger;
-import thedarkcolour.modkit.ModKit;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class SafeItemModelBuilder extends ModelBuilder<SafeItemModelBuilder> {
     private final Logger logger;
     protected List<OverrideBuilder> overrides = new ArrayList<>();
@@ -24,8 +24,8 @@ public class SafeItemModelBuilder extends ModelBuilder<SafeItemModelBuilder> {
         this.logger = logger;
     }
 
-    public OverrideBuilder override() {
-        OverrideBuilder ret = new OverrideBuilder();
+    public OverrideBuilder override(ModelFile model) {
+        OverrideBuilder ret = new OverrideBuilder(model);
         overrides.add(ret);
         return ret;
     }
@@ -66,13 +66,12 @@ public class SafeItemModelBuilder extends ModelBuilder<SafeItemModelBuilder> {
     }
 
     public class OverrideBuilder {
-        private ModelFile model;
-        private final Map<ResourceLocation, Float> predicates = new LinkedHashMap<>();
+        private final ModelFile model;
+        private final Map<ResourceLocation, Float> predicates;
 
-        public OverrideBuilder model(ModelFile model) {
+        public OverrideBuilder(ModelFile model) {
             this.model = model;
-            model.assertExistence();
-            return this;
+            this.predicates = new LinkedHashMap<>();
         }
 
         public OverrideBuilder predicate(ResourceLocation key, float value) {
@@ -80,9 +79,12 @@ public class SafeItemModelBuilder extends ModelBuilder<SafeItemModelBuilder> {
             return this;
         }
 
-        public SafeItemModelBuilder end() { return SafeItemModelBuilder.this; }
+        public SafeItemModelBuilder end() {
+            return SafeItemModelBuilder.this;
+        }
 
-        JsonObject toJson() {
+        // Public because why not
+        public JsonObject toJson() {
             JsonObject ret = new JsonObject();
             JsonObject predicatesJson = new JsonObject();
             predicates.forEach((key, val) -> predicatesJson.addProperty(key.toString(), val));

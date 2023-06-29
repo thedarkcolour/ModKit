@@ -3,7 +3,6 @@ package thedarkcolour.modkit.item;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -32,11 +31,10 @@ public class FillWandItem extends AbstractFillWand {
             stack.addTagElement("FillBlock", NbtUtils.writeBlockState(state));
             player.displayClientMessage(Component.literal("Set block to " + state.getBlock()), true);
         } else {
-            if (needsStartPos(stack)) {
+            if (stack.getTagElement("StartPos") == null) {
                 saveStartPos(stack, pos, player);
             } else {
-                CompoundTag savedFillBlock = stack.getTagElement("FillBlock");
-
+                var savedFillBlock = stack.getTagElement("FillBlock");
                 if (savedFillBlock == null) {
                     player.displayClientMessage(Component.literal("No filler block (use sneak click on a block)"), true);
                 } else {
@@ -50,10 +48,12 @@ public class FillWandItem extends AbstractFillWand {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag advanced) {
         super.appendHoverText(stack, level, tooltip, advanced);
-        CompoundTag savedFillBlock = stack.getTagElement("FillBlock");
 
-        if (savedFillBlock != null) {
-            tooltip.add(Component.literal("Filler Block: ").append(Component.translatable(NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), savedFillBlock).getBlock().getDescriptionId()).withStyle(ChatFormatting.YELLOW)));
+        if (level != null) {
+            var fillBlockNbt = stack.getTagElement("FillBlock");
+            if (fillBlockNbt != null) {
+                tooltip.add(Component.literal("Filler Block: ").append(Component.translatable(NbtUtils.readBlockState(level.holderLookup(Registries.BLOCK), fillBlockNbt).getBlock().getDescriptionId()).withStyle(ChatFormatting.YELLOW)));
+            }
         }
     }
 }

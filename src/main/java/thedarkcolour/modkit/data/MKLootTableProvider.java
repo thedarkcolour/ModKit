@@ -6,6 +6,7 @@ import net.minecraft.data.loot.LootTableProvider;
 import java.util.List;
 import java.util.Set;
 
+// todo
 public class MKLootTableProvider extends LootTableProvider {
     public MKLootTableProvider(PackOutput pOutput, List<SubProviderEntry> pSubProviders) {
         super(pOutput, Set.of(), pSubProviders);

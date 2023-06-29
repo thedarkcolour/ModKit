@@ -11,11 +11,14 @@ import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 import thedarkcolour.modkit.data.model.SafeBlockModelProvider;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 
+@SuppressWarnings("unused")
 public class MKBlockModelProvider extends BlockStateProvider {
     private final Lazy<MKItemModelProvider> itemModels;
     private final String modid;
@@ -23,18 +26,12 @@ public class MKBlockModelProvider extends BlockStateProvider {
 
     private final SafeBlockModelProvider blockModels;
 
-    protected MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, DataHelper dataHelper, String modid, Consumer<MKBlockModelProvider> addBlockModels) {
+    protected MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, Lazy<MKItemModelProvider> itemModels, String modid, Logger logger, Consumer<MKBlockModelProvider> addBlockModels) {
         super(output, modid, existingFileHelper);
-        this.itemModels = Lazy.of(() -> {
-            if (dataHelper.itemModels == null) {
-                dataHelper.createItemModels(false, false, false, null);
-                dataHelper.event.getGenerator().addProvider(dataHelper.event.includeClient(), dataHelper.itemModels);
-            }
-            return dataHelper.itemModels;
-        });
+        this.itemModels = itemModels;
         this.modid = modid;
         this.addBlockModels = addBlockModels;
-        this.blockModels = new SafeBlockModelProvider(output, modid, existingFileHelper);
+        this.blockModels = new SafeBlockModelProvider(output, modid, logger, existingFileHelper);
     }
 
     public ModelFile.UncheckedModelFile file(ResourceLocation resourceLoc) {
@@ -42,19 +39,19 @@ public class MKBlockModelProvider extends BlockStateProvider {
     }
 
     public ModelFile.UncheckedModelFile modFile(String path) {
-        return file(modBlock(path));
+        return this.file(this.modBlock(path));
     }
 
     public ModelFile.UncheckedModelFile mcFile(String path) {
-        return file(mcBlock(path));
+        return this.file(this.mcBlock(path));
     }
 
     public ResourceLocation modBlock(String name) {
-        return modLoc("block/" + name);
+        return this.modLoc("block/" + name);
     }
 
     public ResourceLocation mcBlock(String name) {
-        return mcLoc("block/" + name);
+        return this.mcLoc("block/" + name);
     }
 
     public ResourceLocation key(Block block) {
@@ -62,17 +59,17 @@ public class MKBlockModelProvider extends BlockStateProvider {
     }
 
     public String name(Block block) {
-        return key(block).getPath();
+        return this.key(block).getPath();
     }
 
     @Override
     public BlockModelBuilder cubeAll(Block block) {
-        return models().cubeAll(name(block), blockTexture(block));
+        return this.models().cubeAll(this.name(block), this.blockTexture(block));
     }
 
     @Override
     public void simpleBlockItem(Block block, ModelFile model) {
-        itemModels.get().getBuilder(key(block).getPath()).parent(model);
+        this.itemModels.get().getBuilder(key(block).getPath()).parent(model);
     }
 
     /**
@@ -93,16 +90,17 @@ public class MKBlockModelProvider extends BlockStateProvider {
 
     @Override
     public BlockModelProvider models() {
-        return blockModels;
+        return this.blockModels;
     }
 
     @Override
     protected void registerStatesAndModels() {
-        addBlockModels.accept(this);
+        this.addBlockModels.accept(this);
     }
 
     @Override
+    @NotNull
     public String getName() {
-        return "ModKit Block Models for mod '" + modid + "'";
+        return "ModKit Block Models for mod '" + this.modid + "'";
     }
 }

@@ -1,5 +1,6 @@
 {
   "block.testmod.orange_block": "Orange Block",
   "block.testmod.red_block": "Red Block",
+  "effect.testmod.bruise": "Bruise",
   "item.testmod.orange": "Orange"
 }

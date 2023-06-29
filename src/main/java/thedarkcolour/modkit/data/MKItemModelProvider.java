@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-@SuppressWarnings("UnusedReturnValue")
+@SuppressWarnings({"UnusedReturnValue", "unused"})
 public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     private final Logger logger;
     private final boolean generate3dBlockItems;

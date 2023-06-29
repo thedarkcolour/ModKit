@@ -14,10 +14,9 @@ public final class DataGen {
     public static void gatherData(GatherDataEvent event) {
         DataHelper helper = new DataHelper(TestMod.ID, event);
 
-        helper.createEnglish(true, null);
+        helper.createEnglish(true, English::addTranslations);
         helper.createBlockModels(BlockModels::addBlockModels);
         helper.createItemModels(true, true, false, ItemModels::addItemModels);
-        // These methods should be declared in separate classes to avoid classloading ModKit if data isn't running
         helper.createRecipes(Recipes::addRecipes);
     }
 

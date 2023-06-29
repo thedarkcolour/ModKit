@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MKRecipeProvider extends RecipeProvider {
     private final BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes;
     @Nullable
@@ -67,7 +68,7 @@ public class MKRecipeProvider extends RecipeProvider {
 
     /**
      * Generates a shaped recipe with the recipe layout defined by the {@code recipe} Consumer.
-     * Will make a best guess attempt for an unlockedBy criterion, but manually setting one
+     * Will make a best-guess attempt for an unlockedBy criterion, but manually setting one
      * in the Consumer may be preferable or required.
      *
      * @param recipeId    Recipe id to use when generating the recipe, or null for the default name.

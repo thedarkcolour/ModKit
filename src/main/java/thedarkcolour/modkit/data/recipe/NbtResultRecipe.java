@@ -11,6 +11,8 @@ import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
+
 public abstract class NbtResultRecipe<T extends RecipeBuilder> implements RecipeBuilder {
     protected final RecipeCategory category;
     protected final Item result;
@@ -66,7 +68,7 @@ public abstract class NbtResultRecipe<T extends RecipeBuilder> implements Recipe
 
     public static JsonObject serializeResult(Item item, int count, @Nullable CompoundTag nbt) {
         JsonObject resultObj = new JsonObject();
-        resultObj.addProperty("item", ForgeRegistries.ITEMS.getKey(item).toString());
+        resultObj.addProperty("item", Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item)).toString());
 
         if (count > 1) {
             resultObj.addProperty("count", count);

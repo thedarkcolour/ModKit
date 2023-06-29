@@ -25,6 +25,7 @@ import java.util.function.Consumer;
  * Same as regular ShapelessRecipeBuilder but you can add an NBT tag to the crafting result,
  * which is supported by Forge but is not included in Minecraft's data generation.
  */
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class NbtShapelessRecipeBuilder extends NbtResultRecipe<NbtShapelessRecipeBuilder> {
     private final List<Ingredient> ingredients = new ArrayList<>();
 

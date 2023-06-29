@@ -22,8 +22,9 @@ public class DistanceWandItem extends Item {
 
             if (player == null) return InteractionResult.PASS;
 
-            if (stack.getTagElement("StartPos") != null) {
-                var start = NbtUtils.readBlockPos(stack.getTagElement("StartPos"));
+            var startPosNbt = stack.getTagElement("StartPos");
+            if (startPosNbt != null) {
+                var start = NbtUtils.readBlockPos(startPosNbt);
 
                 var dx = pos.getX() == start.getX() ? 0 : Math.abs(pos.getX() - start.getX()) + 1;
                 var dy = pos.getY() == start.getY() ? 0 : Math.abs(pos.getY() - start.getY()) + 1;

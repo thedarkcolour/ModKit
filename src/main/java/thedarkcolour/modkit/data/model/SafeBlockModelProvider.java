@@ -9,7 +9,6 @@ import net.minecraftforge.client.model.generators.BlockModelProvider;
 import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import org.slf4j.Logger;
-import thedarkcolour.modkit.ModKit;
 
 import java.util.concurrent.CompletableFuture;
 

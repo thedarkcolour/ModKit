@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+@SuppressWarnings("unused")
 public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuilder> {
     private final List<String> rows = new ArrayList<>();
     private final Char2ObjectMap<Ingredient> key = new Char2ObjectOpenHashMap<>(9);

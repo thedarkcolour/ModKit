@@ -4,7 +4,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.client.model.generators.BlockModelBuilder;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import org.slf4j.Logger;
-import thedarkcolour.modkit.ModKit;
 
 public class SafeBlockModelBuilder extends BlockModelBuilder {
     private final Logger logger;
@@ -20,8 +19,8 @@ public class SafeBlockModelBuilder extends BlockModelBuilder {
         try {
             return super.texture(key, texture);
         } catch (IllegalArgumentException e) {
-            logger.error(e.getMessage());
-            textures.put(key, texture.toString());
+            this.logger.error(e.getMessage());
+            this.textures.put(key, texture.toString());
             return this;
         }
     }

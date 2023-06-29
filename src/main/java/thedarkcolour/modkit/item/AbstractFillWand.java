@@ -34,25 +34,24 @@ public abstract class AbstractFillWand extends Item {
     protected abstract MutableComponent getFillMessage();
 
     protected void fill(ItemStack stack, BlockState state, BlockPos pos, Level level, @Nullable Player player) {
-        BlockPos startPos = NbtUtils.readBlockPos(stack.getTagElement("StartPos"));
-        ImmutableMap.Builder<BlockPos, BlockState> builder = ImmutableMap.builder();
+        var startPosNbt = stack.getTagElement("StartPos");
+        if (startPosNbt != null) {
+            var startPos = NbtUtils.readBlockPos(startPosNbt);
+            var builder = ImmutableMap.<BlockPos, BlockState>builder();
 
-        for (BlockPos blockPos : BlockPos.betweenClosed(startPos, pos)) {
-            BlockPos immutable = blockPos.immutable();
-            builder.put(immutable, level.getBlockState(immutable));
-            level.setBlock(immutable, state, 2);
+            for (var blockPos : BlockPos.betweenClosed(startPos, pos)) {
+                var immutable = blockPos.immutable();
+                builder.put(immutable, level.getBlockState(immutable));
+                level.setBlock(immutable, state, 2);
+            }
+
+            if (player != null) {
+                undoMap.put(player, builder.build());
+
+                player.displayClientMessage(getFillMessage().append(String.format("(%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
+            }
+            stack.removeTagKey("StartPos");
         }
-
-        if (player != null) {
-            undoMap.put(player, builder.build());
-
-            player.displayClientMessage(getFillMessage().append(String.format("(%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
-        }
-        stack.removeTagKey("StartPos");
-    }
-
-    protected boolean needsStartPos(ItemStack stack) {
-        return stack.getTagElement("StartPos") == null;
     }
 
     protected void saveStartPos(ItemStack stack, BlockPos pos, @Nullable Player player) {
@@ -125,8 +124,9 @@ public abstract class AbstractFillWand extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag advanced) {
-        if (!needsStartPos(stack)) {
-            BlockPos startPos = NbtUtils.readBlockPos(stack.getTagElement("StartPos"));
+        var startPosNbt = stack.getTagElement("StartPos");
+        if (startPosNbt != null) {
+            var startPos = NbtUtils.readBlockPos(startPosNbt);
             tooltip.add(Component.literal("Start Position: (" + startPos.getX() + ", " + startPos.getY() + ", " + startPos.getZ() + ")"));
         } else {
             tooltip.add(Component.literal("Tip: Hold sneak click in the air to undo last operation").withStyle(ChatFormatting.DARK_GRAY));
@@ -135,6 +135,6 @@ public abstract class AbstractFillWand extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
-        return needsStartPos(stack) ? super.getName(stack) : Component.translatable(this.getDescriptionId(stack)).append("*");
+        return stack.getTagElement("StartPos") == null ? super.getName(stack) : Component.translatable(this.getDescriptionId(stack)).append("*");
     }
 }

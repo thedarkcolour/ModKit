@@ -1,8 +1,6 @@
 package thedarkcolour.modkit.item;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
@@ -26,7 +24,7 @@ public class ClearWandItem extends AbstractFillWand {
 
     @Override
     protected void handleUse(Level level, ItemStack stack, BlockPos pos, Player player) {
-        if (needsStartPos(stack)) {
+        if (stack.getTagElement("StartPos") == null) {
             saveStartPos(stack, pos, player);
         } else {
             player.getCooldowns().addCooldown(this, 5);
