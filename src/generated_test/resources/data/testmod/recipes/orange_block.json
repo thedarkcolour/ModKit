@@ -1,36 +1,18 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "category": "misc",
-  "ingredients": [
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
-      "item": "testmod:orange"
-    },
-    {
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "#": {
       "item": "testmod:orange"
     }
+  },
+  "pattern": [
+    "###",
+    "###",
+    "###"
   ],
   "result": {
     "item": "testmod:orange_block"
-  }
+  },
+  "show_notification": true
 }
