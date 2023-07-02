@@ -84,8 +84,12 @@ public class MKEnglishProvider extends LanguageProvider {
                 try {
                     MKUtils.forModRegistry(registry, this.modid, (id, obj) -> {
                         String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
-                        add(obj, name);
-                        i.increment();
+                        String key = getTranslationKey(obj);
+
+                        if (!data.containsKey(key)) {
+                            add(key, name);
+                            i.increment();
+                        }
                     });
                 } catch (IllegalArgumentException e) {
                     this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registry.getRegistryName());
@@ -145,48 +149,21 @@ public class MKEnglishProvider extends LanguageProvider {
     }
 
     public void add(Object key, String name) {
-        for (var entry : registryObjectHandlers.entrySet()) {
-            if (entry.getKey().isInstance(key)) {
-                add(entry.getValue().apply(key), name);
-                return;
-            }
-        }
-
-        throw new IllegalArgumentException("Unsupported registry object type for translation keys");
+        add(getTranslationKey(key), name);
     }
 
     public void addGeneric(RegistryObject<?> key, String name) {
         add(key.get(), name);
     }
 
-    /**
-     * Do not include the translation for this key.
-     *
-     * @param key The key to exclude
-     */
-    public void exclude(String key) {
-        data.remove(key);
-    }
-
-    /**
-     * Do not include the translation for the translation key of this registry object.
-     *
-     * @param key The registry object whose key should be excluded.
-     * @throws IllegalArgumentException if any is not a supported registry object
-     */
-    public void exclude(Object key) {
+    public String getTranslationKey(Object object) {
         for (var entry : registryObjectHandlers.entrySet()) {
-            if (entry.getKey().isInstance(key)) {
-                data.remove(entry.getValue().apply(key));
-                return;
+            if (entry.getKey().isInstance(object)) {
+                return entry.getValue().apply(object);
             }
         }
 
         throw new IllegalArgumentException("Unsupported registry object type for translation keys");
-    }
-
-    public void excludeGeneric(RegistryObject<?> key) {
-        exclude(key.get());
     }
 
     static {
