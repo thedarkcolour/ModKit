@@ -11,6 +11,8 @@ import net.minecraft.data.recipes.RecipeBuilder;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
+import net.minecraft.data.recipes.SmithingTransformRecipeBuilder;
+import net.minecraft.data.recipes.SmithingTrimRecipeBuilder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -194,25 +196,37 @@ public class MKRecipeProvider extends RecipeProvider {
         return Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item.asItem()));
     }
 
-    public static <T extends RecipeBuilder> T unlockedByHaving(T builder, ItemLike item) {
-        builder.unlockedBy("has_item", has(item));
-        return builder;
+    public static <T> T unlockedBy(T recipeBuilder, CriterionTriggerInstance criterion) {
+        if (recipeBuilder instanceof RecipeBuilder b) {
+            b.unlockedBy("has_item", criterion);
+        } else if (recipeBuilder instanceof SmithingTrimRecipeBuilder b) {
+            b.unlocks("has_item", criterion);
+        } else if (recipeBuilder instanceof SmithingTransformRecipeBuilder b) {
+            b.unlocks("has_item", criterion);
+        } else {
+            throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
+        }
+
+        return recipeBuilder;
     }
 
-    public static <T extends RecipeBuilder> T unlockedByHaving(T builder, TagKey<Item> tag) {
-        builder.unlockedBy("has_item", has(tag));
-        return builder;
+    public static <T> T unlockedByHaving(T recipeBuilder, ItemLike item) {
+        return unlockedBy(recipeBuilder, has(item));
+    }
+
+    public static <T> T unlockedByHaving(T recipeBuilder, TagKey<Item> tag) {
+        return unlockedBy(recipeBuilder, has(tag));
     }
 
     /**
      * Takes in an Ingredient and tries to extract its Item or TagKey for making a recipe criterion.
      * This is necessary because an Ingredient cannot be used for normal recipe criterion.
      *
-     * @param builder    The recipe builder to add a criterion to
+     * @param builder    The recipe builder to add a criterion to (can be RecipeBuilder or the smithing recipe builders)
      * @param ingredient The ingredient to try to use as a criterion
      * @return Whether a criterion was added or not
      */
-    public static boolean unlockedByHaving(RecipeBuilder builder, Ingredient ingredient) {
+    public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
         if (ingredient.getItems().length == 1) {
             if (ingredient.toJson() instanceof JsonObject ingredientObj) {
                 if (ingredientObj.has("item")) {
