@@ -1,8 +1,11 @@
 package thedarkcolour.modkit.data;
 
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.Registry;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.resources.ResourceKey;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.data.event.GatherDataEvent;
 import org.jetbrains.annotations.Nullable;
@@ -10,7 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import thedarkcolour.modkit.ModKit;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -33,6 +38,7 @@ public class DataHelper {
     protected final String modid;
     protected final GatherDataEvent event;
     protected final Logger logger;
+    protected final Map<ResourceKey<?>, MKTagsProvider<?>> tags;
 
     @Nullable
     protected MKEnglishProvider english;
@@ -49,6 +55,7 @@ public class DataHelper {
         this.modid = modid;
         this.event = event;
         this.logger = LoggerFactory.getLogger(ModKit.ID + "/" + modid);
+        this.tags = new HashMap<>();
     }
 
     /**
@@ -66,7 +73,7 @@ public class DataHelper {
     public MKEnglishProvider createEnglish(boolean generateNames, @Nullable Consumer<MKEnglishProvider> addTranslations) {
         this.checkNotCreated(this.english, "English language");
 
-        this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), modid, logger, generateNames, addTranslations);
+        this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), this.modid, this.logger, generateNames, addTranslations);
 
         if (addModonomiconBooks != null) {
             for (DataProvider book : addModonomiconBooks.apply(this.english, this.event.getGenerator().getPackOutput())) {
@@ -84,7 +91,7 @@ public class DataHelper {
      *
      * @param customEnglish Whether you are calling {{@link #createEnglish(boolean, Consumer)}} later. If false,
      *                      this method will use an MKEnglishProvider that doesn't generate names.
-     * @param addBooks Create your book providers here, return them as a list.
+     * @param addBooks      Create your book providers here, return them as a list.
      */
     public void createModonomiconBooks(boolean customEnglish, BiFunction<MKEnglishProvider, PackOutput, List<DataProvider>> addBooks) {
         this.addModonomiconBooks = addBooks;
@@ -160,6 +167,33 @@ public class DataHelper {
         this.event.getGenerator().addProvider(this.event.includeServer(), this.recipes);
 
         return this.recipes;
+    }
+
+    /**
+     * Alternative method which omits the often unused HolderLookup.Provider parameter.
+     * @see DataHelper#createTags(ResourceKey, BiConsumer)
+     */
+    public <T> MKTagsProvider<T> createTags(ResourceKey<? extends Registry<T>> registry, Consumer<MKTagsProvider<T>> addTags) {
+        return this.createTags(registry, (tags, lookup) -> addTags.accept(tags));
+    }
+
+    /**
+     * Generates tags for a specific registry. For item tags, you may use the copy() method
+     * to copy equivalent block tags into your item tags.
+     *
+     * @param registry The registry to generate tags for
+     * @param addTags  A function that takes in the tag provider and a holder lookup provider in order to generate tags.
+     * @param <T>      The type of objects to generate tags for
+     * @return The tag provider, not sure what you'd use this for.
+     */
+    public <T> MKTagsProvider<T> createTags(ResourceKey<? extends Registry<T>> registry, BiConsumer<MKTagsProvider<T>, HolderLookup.Provider> addTags) {
+        this.checkNotCreated(this.tags.get(registry), "Tags for " + registry.location());
+
+        var provider = new MKTagsProvider<>(this, registry, addTags);
+        this.tags.put(registry, provider);
+        this.event.getGenerator().addProvider(this.event.includeServer(), provider);
+
+        return provider;
     }
 
     private void checkNotCreated(@Nullable Object obj, String provider) {

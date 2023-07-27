@@ -1,5 +1,6 @@
 package thedarkcolour.testmod.data;
 
+import net.minecraft.core.registries.Registries;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.data.loading.DatagenModLoader;
 import thedarkcolour.modkit.data.DataHelper;
@@ -18,6 +19,8 @@ public final class DataGen {
         helper.createBlockModels(BlockModels::addBlockModels);
         helper.createItemModels(true, true, false, ItemModels::addItemModels);
         helper.createRecipes(Recipes::addRecipes);
+        helper.createTags(Registries.BLOCK, ModTags::addBlockTags);
+        helper.createTags(Registries.ITEM, ModTags::addItemTags);
     }
 
     // Do not load this class outside of data gen

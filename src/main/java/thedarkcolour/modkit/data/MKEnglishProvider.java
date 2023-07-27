@@ -32,6 +32,15 @@ import java.util.function.Function;
 public class MKEnglishProvider extends LanguageProvider {
     private static final Field FIELD_DATA;
 
+    static {
+        try {
+            FIELD_DATA = LanguageProvider.class.getDeclaredField("data");
+            FIELD_DATA.setAccessible(true);
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to reflect into LanguageProvider, overrides of generated names will not work!", e);
+        }
+    }
+
     private final String modid;
     private final Logger logger;
     private final boolean generateNames;
@@ -164,14 +173,5 @@ public class MKEnglishProvider extends LanguageProvider {
         }
 
         throw new IllegalArgumentException("Unsupported registry object type for translation keys");
-    }
-
-    static {
-        try {
-            FIELD_DATA = LanguageProvider.class.getDeclaredField("data");
-            FIELD_DATA.setAccessible(true);
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to reflect into LanguageProvider, overrides of generated names will not work!", e);
-        }
     }
 }
