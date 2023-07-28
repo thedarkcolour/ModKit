@@ -1,4 +1,4 @@
-package thedarkcolour.modkit.impl;
+package thedarkcolour.modkit.data;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
@@ -16,9 +16,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.common.extensions.IForgeIntrinsicHolderTagAppender;
 import net.minecraftforge.common.util.Lazy;
 import org.slf4j.Logger;
-import thedarkcolour.modkit.data.ITagsProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +34,7 @@ import java.util.function.Supplier;
  * @param <T> The type of objects this tag provider is generating tags for.
  */
 @SuppressWarnings("deprecation")
-public class MKTagsProvider<T> extends TagsProvider<T> implements ITagsProvider<T>, Function<TagKey<T>, MKTagsProvider.DirectTagAppender<T>> {
+public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKey<T>, MKTagsProvider.DirectTagAppender<T>> {
     private static final Function<EntityType<?>, ResourceKey<EntityType<?>>> ENTITY_TYPE_KEY_GETTER;
     private static final Function<Item, ResourceKey<Item>> ITEM_KEY_GETTER;
     private static final Function<Block, ResourceKey<Block>> BLOCK_KEY_GETTER;
@@ -78,6 +78,10 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements ITagsProvider<
     }
 
     @Override
+    public DirectTagAppender<T> apply(TagKey<T> tag) {
+        return tag(tag);
+    }
+
     public void copy(TagKey<Block> blockTag, TagKey<Item> itemTag) {
         if (this.registryKey.equals(Registries.ITEM)) {
             this.tagsToCopy.put(blockTag, itemTag);
@@ -135,7 +139,7 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements ITagsProvider<
         return obj -> RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registry).getResourceKey(obj).get();
     }
 
-    public static class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements ITagsProvider.IDirectTagAppender<T> {
+    public static class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements IForgeIntrinsicHolderTagAppender<T> {
         private final Function<T, ResourceKey<T>> keyGetter;
 
         public DirectTagAppender(TagBuilder builder, Function<T, ResourceKey<T>> keyGetter, String modId) {
@@ -149,19 +153,16 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements ITagsProvider<
             return this;
         }
 
-        @Override
         public final DirectTagAppender<T> add(T obj) {
             this.add(keyGetter.apply(obj));
             return this;
         }
 
-        @Override
         public final DirectTagAppender<T> add(Supplier<? extends T> obj) {
             this.add(keyGetter.apply(obj.get()));
             return this;
         }
 
-        @Override
         @SafeVarargs
         public final DirectTagAppender<T> add(T... objs) {
             for (var obj : objs) {
@@ -175,14 +176,12 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements ITagsProvider<
             return keyGetter.apply(value);
         }
 
-        @Override
         public DirectTagAppender<T> addKey(ResourceKey<T> key) {
             this.add(key);
             return this;
         }
 
         @SafeVarargs
-        @Override
         public final DirectTagAppender<T> addKey(ResourceKey<T>... keys) {
             this.add(keys);
             return this;

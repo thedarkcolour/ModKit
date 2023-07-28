@@ -1,7 +1,7 @@
 package thedarkcolour.modkit;
 
 import net.minecraftforge.data.event.GatherDataEvent;
-import thedarkcolour.modkit.impl.DataHelper;
+import thedarkcolour.modkit.data.DataHelper;
 import thedarkcolour.modkit.data.MKEnglishProvider;
 
 /**

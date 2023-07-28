@@ -3,7 +3,7 @@ package thedarkcolour.testmod.data;
 import net.minecraft.core.registries.Registries;
 import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.data.loading.DatagenModLoader;
-import thedarkcolour.modkit.impl.DataHelper;
+import thedarkcolour.modkit.data.DataHelper;
 import thedarkcolour.testmod.TestMod;
 
 /**
