@@ -1,4 +1,4 @@
-package thedarkcolour.modkit.data;
+package thedarkcolour.modkit.impl;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
@@ -7,7 +7,9 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.tags.TagsProvider;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagBuilder;
+import net.minecraft.tags.TagEntry;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -16,6 +18,7 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.util.Lazy;
 import org.slf4j.Logger;
+import thedarkcolour.modkit.data.ITagsProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +33,8 @@ import java.util.function.Supplier;
  *
  * @param <T> The type of objects this tag provider is generating tags for.
  */
-public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKey<T>, MKTagsProvider.DirectTagAppender<T>> {
+@SuppressWarnings("deprecation")
+public class MKTagsProvider<T> extends TagsProvider<T> implements ITagsProvider<T>, Function<TagKey<T>, MKTagsProvider.DirectTagAppender<T>> {
     private static final Function<EntityType<?>, ResourceKey<EntityType<?>>> ENTITY_TYPE_KEY_GETTER;
     private static final Function<Item, ResourceKey<Item>> ITEM_KEY_GETTER;
     private static final Function<Block, ResourceKey<Block>> BLOCK_KEY_GETTER;
@@ -67,18 +71,15 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         this.addTags.accept(this, lookup);
     }
 
+    @Override
     public DirectTagAppender<T> tag(TagKey<T> tag) {
         var builder = this.getOrCreateRawBuilder(tag);
         return new DirectTagAppender<>(builder, this.keyGetter, this.modId);
     }
 
     @Override
-    public DirectTagAppender<T> apply(TagKey<T> tag) {
-        return tag(tag);
-    }
-
     public void copy(TagKey<Block> blockTag, TagKey<Item> itemTag) {
-        if (this.registryKey == Registries.ITEM) {
+        if (this.registryKey.equals(Registries.ITEM)) {
             this.tagsToCopy.put(blockTag, itemTag);
         } else {
             logger.warn("Tried to copy a block tag in a tag provider for registry " + registryKey.location());
@@ -87,11 +88,12 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
 
     @Override
     protected CompletableFuture<HolderLookup.Provider> createContentsProvider() {
-        if (registryKey == Registries.ITEM) {
+        if (registryKey.equals(Registries.ITEM)) {
             return super.createContentsProvider().thenCombineAsync(blockTags.get(), (itemTags, blockTags) -> {
                 // if no block tags are registered, this will be null per the second MKTagsProvider constructor
                 if (blockTags != null) {
                     this.tagsToCopy.forEach((blockTag, itemTag) -> {
+                        @SuppressWarnings("unchecked")
                         var builder = this.getOrCreateRawBuilder((TagKey<T>) itemTag);
                         var blockTagBuilder = blockTags.apply(blockTag).orElseThrow(() -> new IllegalStateException("Missing block tag " + itemTag.location())).build();
 
@@ -111,15 +113,15 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
     private static <T> Function<T, ResourceKey<T>> chooseKeyGetter(ResourceKey<? extends Registry<T>> registry) {
         Function keyGetter;
 
-        if (registry == Registries.ENTITY_TYPE) {
+        if (registry.equals(Registries.ENTITY_TYPE)) {
             keyGetter = ENTITY_TYPE_KEY_GETTER;
-        } else if (registry == Registries.BLOCK) {
+        } else if (registry.equals(Registries.BLOCK)) {
             keyGetter = BLOCK_KEY_GETTER;
-        } else if (registry == Registries.ITEM) {
+        } else if (registry.equals(Registries.ITEM)) {
             keyGetter = ITEM_KEY_GETTER;
-        } else if (registry == Registries.FLUID) {
+        } else if (registry.equals(Registries.FLUID)) {
             keyGetter = FLUID_KEY_GETTER;
-        } else if (registry == Registries.GAME_EVENT) {
+        } else if (registry.equals(Registries.GAME_EVENT)) {
             keyGetter = GAME_EVENT_KEY_GETTER;
         } else {
             keyGetter = registryKeyGetter(registry);
@@ -133,7 +135,7 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         return obj -> RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registry).getResourceKey(obj).get();
     }
 
-    public static class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements net.minecraftforge.common.extensions.IForgeIntrinsicHolderTagAppender<T> {
+    public static class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements ITagsProvider.IDirectTagAppender<T> {
         private final Function<T, ResourceKey<T>> keyGetter;
 
         public DirectTagAppender(TagBuilder builder, Function<T, ResourceKey<T>> keyGetter, String modId) {
@@ -141,21 +143,25 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
             this.keyGetter = keyGetter;
         }
 
+        @Override
         public DirectTagAppender<T> addTag(TagKey<T> tag) {
             super.addTag(tag);
             return this;
         }
 
+        @Override
         public final DirectTagAppender<T> add(T obj) {
             this.add(keyGetter.apply(obj));
             return this;
         }
 
+        @Override
         public final DirectTagAppender<T> add(Supplier<? extends T> obj) {
             this.add(keyGetter.apply(obj.get()));
             return this;
         }
 
+        @Override
         @SafeVarargs
         public final DirectTagAppender<T> add(T... objs) {
             for (var obj : objs) {
@@ -167,6 +173,37 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         @Override
         public final ResourceKey<T> getKey(T value) {
             return keyGetter.apply(value);
+        }
+
+        @Override
+        public DirectTagAppender<T> addKey(ResourceKey<T> key) {
+            this.add(key);
+            return this;
+        }
+
+        @SafeVarargs
+        @Override
+        public final DirectTagAppender<T> addKey(ResourceKey<T>... keys) {
+            this.add(keys);
+            return this;
+        }
+
+        @Override
+        public DirectTagAppender<T> addOptional(ResourceLocation p_176840_) {
+            super.addOptional(p_176840_);
+            return this;
+        }
+
+        @Override
+        public DirectTagAppender<T> addOptionalTag(ResourceLocation p_176842_) {
+            super.addOptionalTag(p_176842_);
+            return this;
+        }
+
+        @Override
+        public DirectTagAppender<T> add(TagEntry tag) {
+            super.add(tag);
+            return this;
         }
     }
 

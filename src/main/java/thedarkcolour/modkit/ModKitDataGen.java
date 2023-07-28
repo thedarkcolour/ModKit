@@ -1,7 +1,7 @@
 package thedarkcolour.modkit;
 
 import net.minecraftforge.data.event.GatherDataEvent;
-import thedarkcolour.modkit.data.DataHelper;
+import thedarkcolour.modkit.impl.DataHelper;
 import thedarkcolour.modkit.data.MKEnglishProvider;
 
 /**
@@ -10,7 +10,7 @@ import thedarkcolour.modkit.data.MKEnglishProvider;
  */
 final class ModKitDataGen {
     static void gatherData(GatherDataEvent event) {
-        // Instead of manually adding data providers to the event, use the DataHelper class
+        // Instead of manually adding data providers to the event, use the IDataHelper class
         var dataHelper = new DataHelper(ModKit.ID, event);
         dataHelper.createEnglish(true, ModKitDataGen::addNames);
         dataHelper.createItemModels(false, true, false, null);

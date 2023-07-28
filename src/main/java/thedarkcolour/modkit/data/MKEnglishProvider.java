@@ -13,6 +13,7 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.text.WordUtils;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import thedarkcolour.modkit.MKUtils;
@@ -50,7 +51,8 @@ public class MKEnglishProvider extends LanguageProvider {
     private final Map<Class<?>, Function<Object, String>> registryObjectHandlers;
     private final List<IForgeRegistry<?>> autoTranslatedRegistries;
 
-    protected MKEnglishProvider(PackOutput output, String modid, Logger logger, boolean generateNames, @Nullable Consumer<MKEnglishProvider> addNames) {
+    @ApiStatus.Internal
+    public MKEnglishProvider(PackOutput output, String modid, Logger logger, boolean generateNames, @Nullable Consumer<MKEnglishProvider> addNames) {
         super(output, modid, "en_us");
         this.modid = modid;
         this.logger = logger;

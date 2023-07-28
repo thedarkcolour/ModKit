@@ -1,4 +1,4 @@
-package thedarkcolour.modkit.data;
+package thedarkcolour.modkit.impl;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
@@ -20,18 +20,17 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.data.IRecipeProvider;
 import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
 import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
-import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public class MKRecipeProvider extends RecipeProvider {
+public class MKRecipeProvider extends RecipeProvider implements IRecipeProvider {
     private final BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes;
     @Nullable
     private Consumer<FinishedRecipe> writer;
@@ -48,38 +47,32 @@ public class MKRecipeProvider extends RecipeProvider {
         this.writer = null;
     }
 
+    @Override
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
         shapedCrafting(recipeId, category, result, 1, recipe);
     }
 
+    @Override
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, int resultCount, Consumer<NbtShapedRecipeBuilder> recipe) {
         shapedCrafting(recipeId, category, result, resultCount, null, recipe);
     }
 
+    @Override
     public void shapedCrafting(RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
         shapedCrafting(category, result, 1, recipe);
     }
 
+    @Override
     public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, Consumer<NbtShapedRecipeBuilder> recipe) {
         shapedCrafting(category, result, resultCount, null, recipe);
     }
 
+    @Override
     public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
         shapedCrafting(null, category, result, resultCount, resultNbt, recipe);
     }
 
-    /**
-     * Generates a shaped recipe with the recipe layout defined by the {@code recipe} Consumer.
-     * Will make a best-guess attempt for an unlockedBy criterion, but manually setting one
-     * in the Consumer may be preferable or required.
-     *
-     * @param recipeId    Recipe id to use when generating the recipe, or null for the default name.
-     * @param category    Recipe category for displaying in the green recipe book
-     * @param result      The result item
-     * @param resultCount The number of result items resulting from one craft of this recipe
-     * @param resultNbt   The NBT of the result item(s)
-     * @param recipe      Function, usually a lambda, which defines the recipe layout by calling define and key on the recipe builder.
-     */
+    @Override
     public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
         Preconditions.checkNotNull(writer);
 
@@ -95,27 +88,18 @@ public class MKRecipeProvider extends RecipeProvider {
         }
     }
 
+    @Override
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
         shapelessCrafting(category, new ItemStack(result, resultCount, null), ingredients);
     }
 
 
+    @Override
     public void shapelessCrafting(RecipeCategory category, ItemStack result, Object... ingredients) {
         shapelessCrafting(category, result, null, ingredients);
     }
 
-    /**
-     * Generates a shapeless recipe with a list of ingredients (can be a mix of ItemLike, Ingredient, and/or TagKey)
-     * and attempts to also generate a recipe criterion so (hopefully) you don't need to call {@code unlockedBy}
-     *
-     * @param category    The recipe category for showing in the green recipe book
-     * @param result      The resulting item of this recipe (NBT and count are included in the generated recipe)
-     * @param unlockedBy  A (nullable) pair of criterion name and criterion instance for unlocking the recipe.
-     *                    In most cases it is easier to leave this null, but it may be desirable to pick a specific
-     *                    criterion or required if ModKit cannot determine a criterion automatically.
-     * @param ingredients Can be ItemLike, Ingredient, RegistryObject or TagKey
-     * @throws IllegalArgumentException if any element of {@code ingredients} is not ItemLike, Ingredient, or TagKey
-     */
+    @Override
     @SuppressWarnings("unchecked")
     public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(writer);
@@ -168,14 +152,7 @@ public class MKRecipeProvider extends RecipeProvider {
         shapeless.save(writer);
     }
 
-    /**
-     * Template for recipes which convert ingot <---> block. Also works for nugget <---> ingot.
-     * Two recipes are generated by this method, but the recipe to convert from storage back
-     * into material has the id "[modid]:[material]_from_storage" to avoid conflicts.
-     *
-     * @param storage  The result of the 3x3 recipe (iron block from ingots, iron ingot from nuggets, etc.)
-     * @param material The ingredient of the 3x3 (iron ingot for block, iron nugget for ingot, diamond for block, etc.)
-     */
+    @Override
     public void storage3x3(ItemLike storage, ItemLike material) {
         Preconditions.checkNotNull(writer);
 
@@ -192,11 +169,12 @@ public class MKRecipeProvider extends RecipeProvider {
         fromStorage.save(writer, id(material).withSuffix("_from_" + id(storage).getPath()));
     }
 
+    @SuppressWarnings("deprecation")
     public static ResourceLocation id(ItemLike item) {
-        return Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item.asItem()));
+        return item.asItem().builtInRegistryHolder().key().location();
     }
 
-    public static <T> T unlockedBy(T recipeBuilder, CriterionTriggerInstance criterion) {
+    private static <T> T unlockedBy(T recipeBuilder, CriterionTriggerInstance criterion) {
         if (recipeBuilder instanceof RecipeBuilder b) {
             b.unlockedBy("has_item", criterion);
         } else if (recipeBuilder instanceof SmithingTrimRecipeBuilder b) {
@@ -219,12 +197,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     /**
-     * Takes in an Ingredient and tries to extract its Item or TagKey for making a recipe criterion.
-     * This is necessary because an Ingredient cannot be used for normal recipe criterion.
-     *
-     * @param builder    The recipe builder to add a criterion to (can be RecipeBuilder or the smithing recipe builders)
-     * @param ingredient The ingredient to try to use as a criterion
-     * @return Whether a criterion was added or not
+     * @see IRecipeProvider#unlockedByHaving(Object, Ingredient)
      */
     public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
         if (ingredient.getItems().length == 1) {

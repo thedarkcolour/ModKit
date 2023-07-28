@@ -1,7 +1,7 @@
 package thedarkcolour.testmod.data;
 
 import net.minecraft.data.recipes.FinishedRecipe;
-import thedarkcolour.modkit.data.MKRecipeProvider;
+import thedarkcolour.modkit.impl.MKRecipeProvider;
 import thedarkcolour.testmod.TestMod;
 
 import java.util.function.Consumer;

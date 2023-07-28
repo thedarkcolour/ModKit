@@ -11,6 +11,7 @@ import net.minecraftforge.client.model.generators.ModelFile;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.common.util.Lazy;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import thedarkcolour.modkit.data.model.SafeBlockModelProvider;
@@ -26,7 +27,8 @@ public class MKBlockModelProvider extends BlockStateProvider {
 
     private final SafeBlockModelProvider blockModels;
 
-    protected MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, Lazy<MKItemModelProvider> itemModels, String modid, Logger logger, Consumer<MKBlockModelProvider> addBlockModels) {
+    @ApiStatus.Internal
+    public MKBlockModelProvider(PackOutput output, ExistingFileHelper existingFileHelper, Lazy<MKItemModelProvider> itemModels, String modid, Logger logger, Consumer<MKBlockModelProvider> addBlockModels) {
         super(output, modid, existingFileHelper);
         this.itemModels = itemModels;
         this.modid = modid;
@@ -73,7 +75,7 @@ public class MKBlockModelProvider extends BlockStateProvider {
     }
 
     /**
-     * @deprecated Do not use this method, use the MKItemModelProvider from your DataHelper
+     * @deprecated Do not use this method, use the MKItemModelProvider from your IDataHelper
      */
     @Override
     @Deprecated

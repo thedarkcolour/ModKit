@@ -4,7 +4,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
-import thedarkcolour.modkit.data.MKTagsProvider;
+import thedarkcolour.modkit.impl.MKTagsProvider;
 import thedarkcolour.testmod.TestMod;
 
 public class ModTags {

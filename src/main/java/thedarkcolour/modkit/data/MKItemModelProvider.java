@@ -16,6 +16,7 @@ import net.minecraftforge.client.model.generators.ModelProvider;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import thedarkcolour.modkit.MKUtils;
@@ -36,7 +37,8 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     private final Consumer<MKItemModelProvider> addItemModels;
     private final List<ResourceLocation> excluded = new ArrayList<>();
 
-    protected MKItemModelProvider(PackOutput output,
+    @ApiStatus.Internal
+    public MKItemModelProvider(PackOutput output,
                                   ExistingFileHelper helper,
                                   String modid,
                                   Logger logger,

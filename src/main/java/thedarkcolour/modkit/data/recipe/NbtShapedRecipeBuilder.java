@@ -20,7 +20,7 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
-import thedarkcolour.modkit.data.MKRecipeProvider;
+import thedarkcolour.modkit.impl.MKRecipeProvider;
 
 import java.util.ArrayList;
 import java.util.List;
