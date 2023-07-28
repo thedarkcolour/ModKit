@@ -7,16 +7,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.tags.TagsProvider;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.tags.TagBuilder;
-import net.minecraft.tags.TagEntry;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.common.extensions.IForgeIntrinsicHolderTagAppender;
 import net.minecraftforge.common.util.Lazy;
 import org.slf4j.Logger;
 
@@ -25,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * If you are a Kotlin user, this class implements {@link java.util.function.Function} with its "tag" method, so
@@ -34,7 +29,7 @@ import java.util.function.Supplier;
  * @param <T> The type of objects this tag provider is generating tags for.
  */
 @SuppressWarnings("deprecation")
-public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKey<T>, MKTagsProvider.DirectTagAppender<T>> {
+public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKey<T>, DirectTagAppender<T>> {
     private static final Function<EntityType<?>, ResourceKey<EntityType<?>>> ENTITY_TYPE_KEY_GETTER;
     private static final Function<Item, ResourceKey<Item>> ITEM_KEY_GETTER;
     private static final Function<Block, ResourceKey<Block>> BLOCK_KEY_GETTER;
@@ -137,73 +132,6 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
     @SuppressWarnings("OptionalGetWithoutIsPresent")
     private static <T> Function<T, ResourceKey<T>> registryKeyGetter(ResourceKey<? extends Registry<T>> registry) {
         return obj -> RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registry).getResourceKey(obj).get();
-    }
-
-    public static class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements IForgeIntrinsicHolderTagAppender<T> {
-        private final Function<T, ResourceKey<T>> keyGetter;
-
-        public DirectTagAppender(TagBuilder builder, Function<T, ResourceKey<T>> keyGetter, String modId) {
-            super(builder, modId);
-            this.keyGetter = keyGetter;
-        }
-
-        @Override
-        public DirectTagAppender<T> addTag(TagKey<T> tag) {
-            super.addTag(tag);
-            return this;
-        }
-
-        public final DirectTagAppender<T> add(T obj) {
-            this.add(keyGetter.apply(obj));
-            return this;
-        }
-
-        public final DirectTagAppender<T> add(Supplier<? extends T> obj) {
-            this.add(keyGetter.apply(obj.get()));
-            return this;
-        }
-
-        @SafeVarargs
-        public final DirectTagAppender<T> add(T... objs) {
-            for (var obj : objs) {
-                this.add(keyGetter.apply(obj));
-            }
-            return this;
-        }
-
-        @Override
-        public final ResourceKey<T> getKey(T value) {
-            return keyGetter.apply(value);
-        }
-
-        public DirectTagAppender<T> addKey(ResourceKey<T> key) {
-            this.add(key);
-            return this;
-        }
-
-        @SafeVarargs
-        public final DirectTagAppender<T> addKey(ResourceKey<T>... keys) {
-            this.add(keys);
-            return this;
-        }
-
-        @Override
-        public DirectTagAppender<T> addOptional(ResourceLocation p_176840_) {
-            super.addOptional(p_176840_);
-            return this;
-        }
-
-        @Override
-        public DirectTagAppender<T> addOptionalTag(ResourceLocation p_176842_) {
-            super.addOptionalTag(p_176842_);
-            return this;
-        }
-
-        @Override
-        public DirectTagAppender<T> add(TagEntry tag) {
-            super.add(tag);
-            return this;
-        }
     }
 
     static {
