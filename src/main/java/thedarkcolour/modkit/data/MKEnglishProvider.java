@@ -1,6 +1,11 @@
 package thedarkcolour.modkit.data;
 
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -49,7 +54,7 @@ public class MKEnglishProvider extends LanguageProvider {
     private final Consumer<MKEnglishProvider> addNames;
     private final Map<String, String> data;
     private final Map<Class<?>, Function<Object, String>> registryObjectHandlers;
-    private final List<IForgeRegistry<?>> autoTranslatedRegistries;
+    private final List<ResourceKey<? extends Registry<?>>> autoTranslatedRegistries;
 
     @ApiStatus.Internal
     public MKEnglishProvider(PackOutput output, String modid, Logger logger, boolean generateNames, @Nullable Consumer<MKEnglishProvider> addNames) {
@@ -60,7 +65,7 @@ public class MKEnglishProvider extends LanguageProvider {
         this.addNames = addNames;
 
         try {
-            data = (Map<String, String>) FIELD_DATA.get(this);
+            this.data = (Map<String, String>) FIELD_DATA.get(this);
         } catch (IllegalAccessException ignored) {
             throw new IllegalStateException("Failed to create MKEnglishProvider");
         }
@@ -76,20 +81,22 @@ public class MKEnglishProvider extends LanguageProvider {
 
         // Registries which will have names generated automatically
         this.autoTranslatedRegistries = new ArrayList<>();
-        autoTranslatedRegistries.add(ForgeRegistries.ITEMS);
-        autoTranslatedRegistries.add(ForgeRegistries.BLOCKS);
-        autoTranslatedRegistries.add(ForgeRegistries.ENTITY_TYPES);
-        autoTranslatedRegistries.add(ForgeRegistries.ENCHANTMENTS);
+        autoTranslatedRegistries.add(ForgeRegistries.Keys.ITEMS);
+        autoTranslatedRegistries.add(ForgeRegistries.Keys.BLOCKS);
+        autoTranslatedRegistries.add(ForgeRegistries.Keys.ENTITY_TYPES);
+        autoTranslatedRegistries.add(ForgeRegistries.Keys.ENCHANTMENTS);
+        autoTranslatedRegistries.add(ForgeRegistries.Keys.FLUID_TYPES);
     }
 
     @Override
     protected void addTranslations() {
-        if (addNames != null) {
-            addNames.accept(this);
+        if (this.addNames != null) {
+            this.addNames.accept(this);
         }
 
         if (this.generateNames) {
-            for (IForgeRegistry<?> registry : this.autoTranslatedRegistries) {
+            for (ResourceKey<? extends Registry<?>> registryKey : this.autoTranslatedRegistries) {
+                var registry = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registryKey);
                 MutableInt i = new MutableInt();
 
                 try {
@@ -97,18 +104,18 @@ public class MKEnglishProvider extends LanguageProvider {
                         String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                         String key = getTranslationKey(obj);
 
-                        if (!data.containsKey(key)) {
+                        if (!this.data.containsKey(key)) {
                             add(key, name);
                             i.increment();
                         }
                     });
                 } catch (IllegalArgumentException e) {
-                    this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registry.getRegistryName());
+                    this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registryKey.location());
                     continue;
                 }
 
                 if (i.intValue() > 0) {
-                    this.logger.info("Automatically generated {} names for mod {}'s entries in registry {}", i, this.modid, registry.getRegistryName());
+                    this.logger.info("Automatically generated {} names for mod {}'s entries in registry {}", i, this.modid, registryKey.location());
                 }
             }
         }
@@ -145,17 +152,17 @@ public class MKEnglishProvider extends LanguageProvider {
      * will be automatically generated for its members.
      * <p>
      * IMPORTANT: Make sure to call {@link #addTranslationHandler(Class, Function)} to register a translation key
-     * handler for your registry objects, otherwise ModKit will not be able to translate them!
+     * handler for your registryKey objects, otherwise ModKit will not be able to translate them!
      *
-     * @param registry        The registry to iterate for automatically generating English names
-     * @param <T>             The generic type for the registry
+     * @param registryKey The ID of the registry to iterate for automatically generating English names
+     * @param <T>         The generic type for the registry
      */
-    public <T> void addRegistryForAutoTranslation(IForgeRegistry<T> registry) {
+    public <T> void addRegistryForAutoTranslation(ResourceKey<? extends Registry<T>> registryKey) {
         if (!this.generateNames) {
-            this.logger.error("Tried to automatically generate English names for registry {}, but {} MKEnglishProvider has 'generateNames' set to false!", registry.getRegistryName(), this.modid);
+            this.logger.error("Tried to automatically generate English names for registryKey {}, but {} MKEnglishProvider has 'generateNames' set to false!", registryKey.location(), this.modid);
             throw new IllegalStateException("MKEnglishGenerator.generateNames is false");
         } else {
-            this.autoTranslatedRegistries.add(registry);
+            this.autoTranslatedRegistries.add(registryKey);
         }
     }
 
@@ -168,7 +175,7 @@ public class MKEnglishProvider extends LanguageProvider {
     }
 
     public String getTranslationKey(Object object) {
-        for (var entry : registryObjectHandlers.entrySet()) {
+        for (var entry : this.registryObjectHandlers.entrySet()) {
             if (entry.getKey().isInstance(object)) {
                 return entry.getValue().apply(object);
             }

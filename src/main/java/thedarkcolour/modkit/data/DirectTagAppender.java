@@ -24,15 +24,23 @@ public class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements
         return this;
     }
 
+    @SafeVarargs
+    public final DirectTagAppender<T> add(T... objs) {
+        for (var obj : objs) {
+            this.add(keyGetter.apply(obj));
+        }
+        return this;
+    }
+
     public final DirectTagAppender<T> add(Supplier<? extends T> obj) {
         this.add(keyGetter.apply(obj.get()));
         return this;
     }
 
     @SafeVarargs
-    public final DirectTagAppender<T> add(T... objs) {
+    public final DirectTagAppender<T> add(Supplier<? extends T>... objs) {
         for (var obj : objs) {
-            this.add(keyGetter.apply(obj));
+            this.add(keyGetter.apply(obj.get()));
         }
         return this;
     }
