@@ -1,5 +1,6 @@
 package thedarkcolour.modkit.data;
 
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.AxeItem;
@@ -149,7 +150,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     @Override
     protected void registerModels() {
         if (generate3dBlockItems || generate2dItems || generateSpawnEggs) {
-            MKUtils.forModRegistry(ForgeRegistries.ITEMS, modid, (id, item) -> {
+            MKUtils.forModRegistry(Registries.ITEM, modid, (id, item) -> {
                 if (generate3dBlockItems && item instanceof BlockItem) {
                     generic3d(id);
                 } else if (generateSpawnEggs && item instanceof SpawnEggItem) {

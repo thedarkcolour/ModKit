@@ -61,7 +61,7 @@ public class ModKit {
 
     private static void postRegistry(FMLLoadCompleteEvent event) {
         MKUtils.forInDevMods(modInfo -> {
-            MKUtils.forModRegistry(ForgeRegistries.BLOCKS, modInfo.getModId(), (id, block) -> {
+            MKUtils.forModRegistry(Registries.BLOCK, modInfo.getModId(), (id, block) -> {
                 if (Item.BY_BLOCK.get(block) == null) {
                     ModKit.LOGGER.warn("Block '{}' has no block item", id);
                 }
@@ -79,7 +79,7 @@ public class ModKit {
 
         // only print errors on the last tab
         if (allTabs.indexOf(event.getTab()) + 1 == allTabs.size()) {
-            MKUtils.forInDevMods(modInfo -> MKUtils.forModRegistry(ForgeRegistries.ITEMS, modInfo.getModId(), (id, item) -> {
+            MKUtils.forInDevMods(modInfo -> MKUtils.forModRegistry(Registries.ITEM, modInfo.getModId(), (id, item) -> {
                 for (var tab : allTabs) {
                     for (var entry : tab.getDisplayItems()) {
                         if (entry.getItem() == item) {
