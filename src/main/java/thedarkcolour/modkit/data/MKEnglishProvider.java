@@ -13,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.data.LanguageProvider;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryObject;
@@ -78,6 +79,7 @@ public class MKEnglishProvider extends LanguageProvider {
         addTranslationHandler(MobEffect.class, MobEffect::getDescriptionId);
         addTranslationHandler(Enchantment.class, Enchantment::getDescriptionId);
         addTranslationHandler(ItemStack.class, ItemStack::getDescriptionId);
+        addTranslationHandler(FluidType.class, FluidType::getDescriptionId);
 
         // Registries which will have names generated automatically
         this.autoTranslatedRegistries = new ArrayList<>();
