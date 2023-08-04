@@ -3,7 +3,6 @@ package thedarkcolour.modkit.data;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
@@ -15,7 +14,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.data.LanguageProvider;
 import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.RegistryObject;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.text.WordUtils;
@@ -34,6 +32,7 @@ import java.util.function.Function;
 
 /**
  * English language generation.
+ * Can even generate names for modded types, just use {@link #addTranslationHandler(Class, Function)} and {@link #addRegistryForAutoTranslation(ResourceKey)}.
  */
 @SuppressWarnings({"unchecked", "deprecation", "unused"})
 public class MKEnglishProvider extends LanguageProvider {

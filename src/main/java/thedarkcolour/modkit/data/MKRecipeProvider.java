@@ -20,11 +20,13 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
 import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -33,12 +35,14 @@ import java.util.function.Consumer;
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MKRecipeProvider extends RecipeProvider {
+    private final String modid;
     private final BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes;
     @Nullable
     private Consumer<FinishedRecipe> writer;
 
-    protected MKRecipeProvider(PackOutput output, BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
+    protected MKRecipeProvider(PackOutput output, String modid, BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
         super(output);
+        this.modid = modid;
         this.addRecipes = addRecipes;
     }
 
@@ -82,18 +86,25 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param recipe      Function, usually a lambda, which defines the recipe layout by calling define and key on the recipe builder.
      */
     public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
-        Preconditions.checkNotNull(writer);
+        Preconditions.checkNotNull(this.writer);
 
         NbtShapedRecipeBuilder builder = new NbtShapedRecipeBuilder(category, result, resultCount, resultNbt);
         recipe.accept(builder);
         if (builder.isMissingCriterion()) {
             builder.attemptAutoCriterion();
         }
+
+        ResourceLocation id;
         if (recipeId != null) {
-            builder.save(writer, recipeId);
+            if (recipeId.contains(":")) {
+                id = new ResourceLocation(recipeId);
+            } else {
+                id = new ResourceLocation(this.modid, recipeId);
+            }
         } else {
-            builder.save(writer);
+            id = new ResourceLocation(this.modid, Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(builder.getResult())).getPath());
         }
+        builder.save(this.writer, id);
     }
 
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {

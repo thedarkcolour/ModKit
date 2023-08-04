@@ -162,7 +162,7 @@ public class DataHelper {
     public MKRecipeProvider createRecipes(BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
         this.checkNotCreated(this.recipes, "Recipes");
 
-        this.recipes = new MKRecipeProvider(this.event.getGenerator().getPackOutput(), addRecipes);
+        this.recipes = new MKRecipeProvider(this.event.getGenerator().getPackOutput(), this.modid, addRecipes);
         this.event.getGenerator().addProvider(this.event.includeServer(), this.recipes);
 
         return this.recipes;
