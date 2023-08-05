@@ -47,9 +47,11 @@ import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
 import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing;
 
@@ -430,6 +432,65 @@ public class MKRecipeProvider extends RecipeProvider {
 
     public static String path(ItemLike item) {
         return Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item.asItem()), "Item " + item.asItem() + " not found in items registry!").getPath();
+    }
+
+    public static Ingredient ingredient(ItemLike item) {
+        return Ingredient.of(item);
+    }
+
+    public static Ingredient ingredient(ItemLike... items) {
+        return Ingredient.of(items);
+    }
+
+    public static Ingredient ingredient(Supplier<? extends ItemLike> item) {
+        return ingredient(item.get());
+    }
+
+    @SafeVarargs
+    public static Ingredient ingredient(Supplier<? extends ItemLike>... items) {
+        ItemLike[] values = new ItemLike[items.length];
+        for (int i = 0; i < items.length; i++) {
+            values[i] = items[i].get();
+        }
+        return ingredient(values);
+    }
+
+    public static Ingredient ingredient(TagKey<Item> tag) {
+        return Ingredient.of(tag);
+    }
+
+    @SafeVarargs
+    public static Ingredient ingredient(TagKey<Item>... tags) {
+        return Ingredient.fromValues(Arrays.stream(tags).map(Ingredient.TagValue::new));
+    }
+
+    /**
+     * Creates an ingredient with a series of values, a combination of the following types:
+     * <ul>
+     *     <li>{@link ItemLike}</li>
+     *     <li>{@link TagKey}&lt;{@link Item}&gt;</li>
+     *     <li>{@link Supplier}&lt;? extends {@link ItemLike}&gt;</li>
+     *     <li>{@link Ingredient.Value}</li>
+     * </ul>
+     * @param values The values the ingredient can match against
+     * @return An ingredient with the specified values
+     * @throws IllegalArgumentException If any element in {@code values} is not one of the permitted types listed above
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static Ingredient ingredient(Object... values) {
+        return Ingredient.fromValues(Arrays.stream(values).map(value -> {
+            if (value instanceof Ingredient.Value ingredientValue) {
+                return ingredientValue;
+            } else if (value instanceof TagKey itemTag && itemTag.registry().equals(Registries.ITEM)) {
+                return new Ingredient.TagValue(itemTag);
+            } else if (value instanceof ItemLike itemLike) {
+                return new Ingredient.ItemValue(new ItemStack(itemLike));
+            } else if (value instanceof Supplier<?> supplier && supplier.get() instanceof ItemLike itemLike) {
+                return new Ingredient.ItemValue(new ItemStack(itemLike));
+            } else {
+                throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass() + " is not subclass of Ingredient.Value, TagKey<Item>, ItemLike, or Supplier<? extends ItemLike>");
+            }
+        }));
     }
 
     private static IllegalArgumentException nonIngredientArgument(Object item) {
