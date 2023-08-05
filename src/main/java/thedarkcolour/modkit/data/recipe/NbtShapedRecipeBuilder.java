@@ -42,7 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuilder> {
     private final List<String> rows = new ArrayList<>();
     private final Char2ObjectMap<Ingredient> key = new Char2ObjectOpenHashMap<>(9);
@@ -99,7 +99,7 @@ public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuild
     /**
      * Whether this recipe displays a toast on the top right of the player's screen upon unlocking.
      * The only Vanilla recipe where this is ever set to false is the Crafting Table recipe, which
-     * is the only recipe the player has unlocked by default.
+     * is also the only recipe the player has unlocked by default.
      */
     public NbtShapedRecipeBuilder showNotification(boolean showNotification) {
         this.showNotification = showNotification;

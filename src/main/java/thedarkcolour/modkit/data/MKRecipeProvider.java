@@ -27,6 +27,7 @@ import net.minecraft.data.recipes.RecipeBuilder;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
+import net.minecraft.data.recipes.SimpleCookingRecipeBuilder;
 import net.minecraft.data.recipes.SmithingTransformRecipeBuilder;
 import net.minecraft.data.recipes.SmithingTrimRecipeBuilder;
 import net.minecraft.nbt.CompoundTag;
@@ -34,8 +35,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
@@ -46,8 +51,10 @@ import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing;
+
 /**
- * The static methods of this class are useful helper methods and can be found at the bottom of this file.
+ * ModKit's implementation of RecipeProvider, along with some static utility methods which can be found at the bottom of this file.
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MKRecipeProvider extends RecipeProvider {
@@ -110,17 +117,33 @@ public class MKRecipeProvider extends RecipeProvider {
             builder.attemptAutoCriterion();
         }
 
-        ResourceLocation id;
+        ResourceLocation id = createRecipeId(recipeId, builder.getResult());
+
+        builder.save(this.writer, id);
+    }
+
+    public ResourceLocation defaultRecipeId(ItemLike result) {
+        return createRecipeId(null, result);
+    }
+
+    /**
+     * Returns a recipe ID for the given string or returns a default recipe ID based on the result item. Unlike Vanilla
+     * data generation, your {@link #modid} is the default namespace, avoiding accidental recipe conflicts.
+     *
+     * @param recipeId A (nullable) recipe ID to convert. Default namespace is {@link #modid}, NOT "minecraft"
+     * @param result   The resulting item of the crafting recipe, used only when recipeId is null.
+     * @return An ID to use for a newly generated recipe
+     */
+    public ResourceLocation createRecipeId(@Nullable String recipeId, ItemLike result) {
         if (recipeId != null) {
             if (recipeId.contains(":")) {
-                id = new ResourceLocation(recipeId);
+                return new ResourceLocation(recipeId);
             } else {
-                id = new ResourceLocation(this.modid, recipeId);
+                return new ResourceLocation(this.modid, recipeId);
             }
         } else {
-            id = new ResourceLocation(this.modid, Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(builder.getResult())).getPath());
+            return new ResourceLocation(this.modid, MKRecipeProvider.path(result));
         }
-        builder.save(this.writer, id);
     }
 
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
@@ -144,7 +167,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param ingredients Can be ItemLike, Ingredient, RegistryObject or TagKey
      * @throws IllegalArgumentException if any element of {@code ingredients} is not ItemLike, Ingredient, or TagKey
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(writer);
 
@@ -167,24 +190,24 @@ public class MKRecipeProvider extends RecipeProvider {
                     shapeless.requires(itemLike);
 
                     if (noCriterion) {
-                        unlockedByHaving(shapeless, itemLike);
+                        MKRecipeProvider.unlockedByHaving(shapeless, itemLike);
                         noCriterion = false;
                     }
-                } else if (ingredient instanceof TagKey<?>) {
-                    shapeless.requires((TagKey<Item>) ingredient);
+                } else if (ingredient instanceof TagKey tagKey) {
+                    shapeless.requires(tagKey);
 
                     if (noCriterion) {
-                        unlockedByHaving(shapeless, (TagKey<Item>) ingredient);
+                        MKRecipeProvider.unlockedByHaving(shapeless, tagKey);
                         noCriterion = false;
                     }
                 } else if (ingredient instanceof Ingredient ing) {
                     shapeless.requires(ing);
 
                     if (noCriterion) {
-                        noCriterion = unlockedByHaving(shapeless, ing);
+                        noCriterion = !MKRecipeProvider.unlockedByHaving(shapeless, ing);
                     }
                 } else {
-                    throw nonIngredientArgument(ingredient);
+                    throw MKRecipeProvider.nonIngredientArgument(ingredient);
                 }
             }
 
@@ -205,19 +228,132 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param material The ingredient of the 3x3 (iron ingot for block, iron nugget for ingot, diamond for block, etc.)
      */
     public void storage3x3(ItemLike storage, ItemLike material) {
-        Preconditions.checkNotNull(writer);
+        Preconditions.checkNotNull(this.writer);
 
-        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, storage, recipe -> {
-            recipe.pattern("###");
-            recipe.pattern("###");
-            recipe.pattern("###");
-            recipe.define('#', material);
-        });
+        grid3x3(RecipeCategory.BUILDING_BLOCKS, storage, Ingredient.of(material));
 
         ShapelessRecipeBuilder fromStorage = new ShapelessRecipeBuilder(RecipeCategory.MISC, material, 9);
         unlockedByHaving(fromStorage, storage);
         fromStorage.requires(storage);
-        fromStorage.save(writer, id(material).withSuffix("_from_" + id(storage).getPath()));
+        fromStorage.save(this.writer, id(material).withSuffix("_from_" + id(storage).getPath()));
+    }
+
+    public void grid3x3(ItemLike result, Ingredient ingredient) {
+        this.grid3x3(RecipeCategory.MISC, result, ingredient);
+    }
+
+    public void grid3x3(RecipeCategory category, ItemLike result, Ingredient ingredient) {
+        Preconditions.checkNotNull(this.writer);
+
+        shapedCrafting(category, result, recipe -> {
+            recipe.define('#', ingredient);
+            recipe.pattern("###");
+            recipe.pattern("###");
+            recipe.pattern("###");
+        });
+    }
+
+    public void grid2x2(ItemLike result, Ingredient ingredient) {
+        this.grid2x2(RecipeCategory.MISC, result, ingredient);
+    }
+
+    public void grid2x2(RecipeCategory category, ItemLike result, Ingredient ingredient) {
+        Preconditions.checkNotNull(this.writer);
+
+        shapedCrafting(category, result, recipe -> {
+            recipe.define('#', ingredient);
+            recipe.pattern("##");
+            recipe.pattern("##");
+        });
+    }
+
+    public void foodCooking(ItemLike input, ItemLike result, float experience) {
+        foodCooking(Ingredient.of(input), result, experience);
+    }
+
+    public void foodCooking(Ingredient ingredient, ItemLike result, float experience) {
+        foodCooking(ingredient, result, experience, 200);
+    }
+
+    /**
+     * Adds a furnace recipe, smoker recipe, and a campfire recipe for the given ingredient and result.
+     * Useful for cooking raw foods into their cooked forms.
+     *
+     * @param ingredient The input ingredient, ex. Raw Beef
+     * @param result     The resulting item, ex. Cooked Beef
+     * @param experience The amount of experience points awarded for cooking in the furnace or smoker
+     * @param duration   The time to smelt in a regular furnace. Smoker takes 0.5x as long, campfire takes 3x as long.
+     */
+    public void foodCooking(Ingredient ingredient, ItemLike result, float experience, int duration) {
+        smelting(ingredient, result, experience, duration);
+        smoking(ingredient, result, experience, duration / 2);
+        campfire(ingredient, result, experience, duration * 3);
+    }
+
+    public void smelting(ItemLike input, ItemLike result, float experience) {
+        smelting(Ingredient.of(input), result, experience);
+    }
+
+    public void smelting(Ingredient ingredient, ItemLike result, float experience) {
+        smelting(ingredient, result, experience, 200);
+    }
+
+    public void smelting(Ingredient ingredient, ItemLike result, float experience, int duration) {
+        genericCooking(RecipeSerializer.SMELTING_RECIPE, ingredient, result, experience, duration);
+    }
+
+    public void blasting(ItemLike input, ItemLike result, float experience) {
+        blasting(Ingredient.of(input), result, experience);
+    }
+
+    public void blasting(Ingredient ingredient, ItemLike result, float experience) {
+        blasting(ingredient, result, experience, 100);
+    }
+
+    public void blasting(Ingredient ingredient, ItemLike result, float experience, int duration) {
+        genericCooking(RecipeSerializer.BLASTING_RECIPE, ingredient, result, experience, duration);
+    }
+
+    public void smoking(ItemLike input, ItemLike result, float experience) {
+        smoking(Ingredient.of(input), result, experience);
+    }
+
+    public void smoking(Ingredient ingredient, ItemLike result, float experience) {
+        smoking(ingredient, result, experience, 100);
+    }
+
+    public void smoking(Ingredient ingredient, ItemLike result, float experience, int duration) {
+        genericCooking(RecipeSerializer.SMOKING_RECIPE, ingredient, result, experience, duration);
+    }
+
+    public void campfire(ItemLike input, ItemLike result, float experience) {
+        campfire(Ingredient.of(input), result, experience, 600);
+    }
+
+    public void campfire(Ingredient ingredient, ItemLike result, float experience) {
+        campfire(ingredient, result, experience, 600);
+    }
+
+    public void campfire(Ingredient ingredient, ItemLike result, float experience, int duration) {
+        genericCooking(RecipeSerializer.CAMPFIRE_COOKING_RECIPE, ingredient, result, experience, duration);
+    }
+
+    public void genericCooking(RecipeSerializer<? extends AbstractCookingRecipe> serializer, Ingredient ingredient, ItemLike result, float experience, int duration) {
+        genericCooking(RecipeCategory.MISC, serializer, ingredient, result, experience, duration);
+    }
+
+    public void genericCooking(RecipeCategory category, RecipeSerializer<? extends AbstractCookingRecipe> serializer, Ingredient ingredient, ItemLike result, float experience, int duration) {
+        Preconditions.checkNotNull(this.writer);
+
+        var builder = SimpleCookingRecipeBuilder.generic(ingredient, category, result, experience, duration, serializer);
+        unlockedByHaving(builder, ingredient);
+        builder.save(this.writer, createRecipeId(null, result.asItem()));
+    }
+
+    public void netheriteUpgrade(RecipeCategory category, Ingredient input, ItemLike result) {
+        Preconditions.checkNotNull(this.writer);
+
+        unlockedByHaving(smithing(Ingredient.of(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), input, Ingredient.of(Tags.Items.INGOTS_NETHERITE), category, result.asItem()), Tags.Items.INGOTS_NETHERITE).save(this.writer, defaultRecipeId(result));
     }
 
     /**
@@ -226,6 +362,56 @@ public class MKRecipeProvider extends RecipeProvider {
     @SuppressWarnings("deprecation")
     public static ResourceLocation id(ItemLike item) {
         return item.asItem().builtInRegistryHolder().key().location();
+    }
+
+    /**
+     * Takes in an Ingredient and tries to extract its Item or TagKey for making a recipe criterion.
+     * This is necessary because an Ingredient cannot be used for normal recipe criterion.
+     *
+     * @param builder    The recipe builder to add a criterion to (can be RecipeBuilder or the smithing recipe builders)
+     * @param ingredient The ingredient to try to use as a criterion
+     * @return True if a criterion was added to the recipe
+     */
+    public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
+        if (ingredient.getItems().length == 1) {
+            if (ingredient.toJson() instanceof JsonObject ingredientObj) {
+                if (ingredientObj.has("item")) {
+                    ItemStack stack = ingredient.getItems()[0];
+                    MKRecipeProvider.unlockedByHaving(builder, stack.getItem());
+                    return true;
+                } else if (ingredientObj.has("tag")) {
+                    TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(ingredientObj.get("tag").getAsString()));
+                    MKRecipeProvider.unlockedByHaving(builder, tag);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Sets a recipe's unlockedBy criterion to InventoryChangeTrigger.TriggerInstance.has(TagKey),
+     * which is protected and thus normally restricted to subclasses of RecipeProvider.
+     *
+     * @param recipeBuilder The recipe builder
+     * @param item          The tag the player must have in their inventory to unlock the recipe
+     * @return The recipe builder
+     */
+    public static <T> T unlockedByHaving(T recipeBuilder, ItemLike item) {
+        return unlockedBy(recipeBuilder, has(item));
+    }
+
+    /**
+     * Sets a recipe's unlockedBy criterion to InventoryChangeTrigger.TriggerInstance.has(TagKey),
+     * which is protected and thus normally restricted to subclasses of RecipeProvider.
+     *
+     * @param recipeBuilder The recipe builder
+     * @param tag           The tag the player must have in their inventory to unlock the recipe
+     * @return The recipe builder
+     */
+    public static <T> T unlockedByHaving(T recipeBuilder, TagKey<Item> tag) {
+        return unlockedBy(recipeBuilder, has(tag));
     }
 
     private static <T> T unlockedBy(T recipeBuilder, CriterionTriggerInstance criterion) {
@@ -242,56 +428,8 @@ public class MKRecipeProvider extends RecipeProvider {
         return recipeBuilder;
     }
 
-    /**
-     * Sets a recipe's unlockedBy criterion to InventoryChangeTrigger.TriggerInstance.has(TagKey),
-     * which is protected and thus normally restricted to subclasses of RecipeProvider.
-     *
-     * @param recipeBuilder The recipe builder
-     * @param item          The tag the player must have in their inventory to unlock the recipe
-     *
-     * @return The recipe builder
-     */
-    public static <T> T unlockedByHaving(T recipeBuilder, ItemLike item) {
-        return unlockedBy(recipeBuilder, has(item));
-    }
-
-    /**
-     * Sets a recipe's unlockedBy criterion to InventoryChangeTrigger.TriggerInstance.has(TagKey),
-     * which is protected and thus normally restricted to subclasses of RecipeProvider.
-     *
-     * @param recipeBuilder The recipe builder
-     * @param tag           The tag the player must have in their inventory to unlock the recipe
-     *
-     * @return The recipe builder
-     */
-    public static <T> T unlockedByHaving(T recipeBuilder, TagKey<Item> tag) {
-        return unlockedBy(recipeBuilder, has(tag));
-    }
-
-    /**
-     * Takes in an Ingredient and tries to extract its Item or TagKey for making a recipe criterion.
-     * This is necessary because an Ingredient cannot be used for normal recipe criterion.
-     *
-     * @param builder    The recipe builder to add a criterion to (can be RecipeBuilder or the smithing recipe builders)
-     * @param ingredient The ingredient to try to use as a criterion
-     * @return Whether a criterion was added or not
-     */
-    public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.getItems().length == 1) {
-            if (ingredient.toJson() instanceof JsonObject ingredientObj) {
-                if (ingredientObj.has("item")) {
-                    ItemStack stack = ingredient.getItems()[0];
-                    MKRecipeProvider.unlockedByHaving(builder, stack.getItem());
-                    return true;
-                } else if (ingredientObj.has("tag")) {
-                    TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(ingredientObj.get("tag").getAsString()));
-                    unlockedByHaving(builder, tag);
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    public static String path(ItemLike item) {
+        return Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item.asItem()), "Item " + item.asItem() + " not found in items registry!").getPath();
     }
 
     private static IllegalArgumentException nonIngredientArgument(Object item) {
