@@ -349,7 +349,15 @@ public class MKRecipeProvider extends RecipeProvider {
 
         var builder = SimpleCookingRecipeBuilder.generic(ingredient, category, result, experience, duration, serializer);
         unlockedByHaving(builder, ingredient);
-        builder.save(this.writer, createRecipeId(null, result.asItem()));
+        String id = path(result);
+        if (serializer == RecipeSerializer.CAMPFIRE_COOKING_RECIPE) {
+            id += "_from_campfire_cooking";
+        } else if (serializer == RecipeSerializer.BLASTING_RECIPE) {
+            id += "_from_blasting";
+        } else if (serializer == RecipeSerializer.SMOKING_RECIPE) {
+            id += "_from_smoking";
+        }
+        builder.save(this.writer, createRecipeId(id, result.asItem()));
     }
 
     public void netheriteUpgrade(RecipeCategory category, Ingredient input, ItemLike result) {
