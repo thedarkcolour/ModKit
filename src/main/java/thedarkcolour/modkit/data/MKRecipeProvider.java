@@ -41,6 +41,8 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.common.crafting.ConditionalRecipe;
+import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
@@ -48,6 +50,7 @@ import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
 import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -76,6 +79,38 @@ public class MKRecipeProvider extends RecipeProvider {
         this.writer = writer;
         this.addRecipes.accept(writer, this);
         this.writer = null;
+    }
+
+    public void conditional(String recipeId, List<ICondition> conditions, Consumer<Consumer<FinishedRecipe>> addRecipes) {
+        conditional(new ResourceLocation(this.modid, recipeId), conditions, addRecipes);
+    }
+
+    /**
+     * Allows creation of conditional recipes.
+     * @param recipeId The ID of the conditional recipe
+     * @param conditions The list of conditions used for all recipe(s) added in addRecipes
+     * @param addRecipes Add recipe(s) to the conditional recipe. Make sure you are using the Consumer from this lambda!
+     */
+    public void conditional(ResourceLocation recipeId, List<ICondition> conditions, Consumer<Consumer<FinishedRecipe>> addRecipes) {
+        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkArgument(!conditions.isEmpty(), "Cannot add a recipe with no conditions.");
+
+        var realWriter = this.writer;
+        var builder = ConditionalRecipe.builder();
+
+        try {
+            this.writer = recipe -> {
+                for (var condition : conditions) {
+                    builder.addCondition(condition);
+                }
+                builder.addRecipe(recipe);
+            };
+            addRecipes.accept(this.writer);
+        } finally {
+            this.writer = realWriter;
+        }
+
+        builder.build(this.writer, recipeId);
     }
 
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
