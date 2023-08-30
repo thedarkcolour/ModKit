@@ -95,22 +95,29 @@ public class MKRecipeProvider extends RecipeProvider {
         Preconditions.checkNotNull(this.writer);
         Preconditions.checkArgument(!conditions.isEmpty(), "Cannot add a recipe with no conditions.");
 
-        var realWriter = this.writer;
         var builder = ConditionalRecipe.builder();
 
+        pushWriter(recipe -> {
+            for (var condition : conditions) {
+                builder.addCondition(condition);
+            }
+            builder.addRecipe(recipe);
+        }, addRecipes);
+
+        builder.build(this.writer, recipeId);
+    }
+
+    public void pushWriter(Consumer<FinishedRecipe> newWriter, Consumer<Consumer<FinishedRecipe>> action) {
+        Preconditions.checkNotNull(newWriter);
+
+        var realWriter = this.writer;
+        this.writer = newWriter;
+
         try {
-            this.writer = recipe -> {
-                for (var condition : conditions) {
-                    builder.addCondition(condition);
-                }
-                builder.addRecipe(recipe);
-            };
-            addRecipes.accept(this.writer);
+            action.accept(this.writer);
         } finally {
             this.writer = realWriter;
         }
-
-        builder.build(this.writer, recipeId);
     }
 
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
