@@ -1,5 +1,6 @@
-// 1.19.4	2023-05-28T19:10:47.0959166	ModKit Item Models for mod 'modkit'
+// 1.20.1	2023-11-24T22:20:20.4175469	ModKit Item Models for mod 'modkit'
 33a1320eb2ce72387140b51876d8c846d14ec1fe assets/modkit/models/item/clear_wand.json
 63b46cfee75913ae8c736b72b6496c0dc7456a2b assets/modkit/models/item/clone_wand.json
 4244bff20534b90da48216c6c9333deacc089ad4 assets/modkit/models/item/distance_wand.json
 c008e5151b9e00b772be5dd79789aa86e1368f6c assets/modkit/models/item/fill_wand.json
+a7741dfb65553a25ac36cde1caffca4f1f0ee620 assets/modkit/models/item/kill_wand.json

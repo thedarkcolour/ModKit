@@ -16,7 +16,6 @@
 
 package thedarkcolour.testmod;
 
-import net.minecraft.world.effect.AttackDamageMobEffect;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.item.BlockItem;

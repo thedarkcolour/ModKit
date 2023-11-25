@@ -1,6 +1,14 @@
-// 1.20.1	2023-08-29T17:38:42.5607019	Recipes
+// 1.20.1	2023-11-24T22:11:48.871284	Recipes
+134459d219b0a46965fe2456902850735a5037cf data/minecraft/advancements/recipes/building_blocks/blackstone.json
+2840b929e2b597eb433d98d2903c7c0dd7640253 data/minecraft/recipes/blackstone.json
+13735411499dd66a73323e3b25e45f0a54dcf203 data/testmod/advancements/recipes/building_blocks/cactus.json
+74a97120d1649361468c33913fe337b22ffbd471 data/testmod/advancements/recipes/building_blocks/ice.json
 f4b8bc2d6f73acfc381266afa44cc3d49759fef7 data/testmod/advancements/recipes/building_blocks/orange_block.json
 466f0d72751bb9ea681a0107816b8cc9fa73f46b data/testmod/advancements/recipes/misc/orange_from_orange_block.json
+e28fdf7a13c0e03a7bdf2e1dd16f3015ab4cb073 data/testmod/advancements/recipes/redstone/iron_door.json
 cb3a8a30877520f783d4db00d6224ee3ec487c98 data/testmod/recipes/apples_if_true.json
+db4530a99abbb74b5f5cc99129351151dcf9c11f data/testmod/recipes/cactus.json
+c6170979875d2d7df11404196e36bc1533418c98 data/testmod/recipes/ice.json
+809262aab1d3f18b200ac218a8e8cf3bbc359b37 data/testmod/recipes/iron_door.json
 1349b14bb28ba3bb51edabac65a5308106a2b806 data/testmod/recipes/orange_block.json
 9743edfb8089187cccec1f892b119b552ae3d8d0 data/testmod/recipes/orange_from_orange_block.json

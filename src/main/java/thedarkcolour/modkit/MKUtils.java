@@ -24,7 +24,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.IModFileInfo;
 import net.minecraftforge.forgespi.language.IModInfo;
-import net.minecraftforge.registries.IForgeRegistry;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;

@@ -38,6 +38,7 @@ import thedarkcolour.modkit.item.ClearWandItem;
 import thedarkcolour.modkit.item.CloneWandItem;
 import thedarkcolour.modkit.item.DistanceWandItem;
 import thedarkcolour.modkit.item.FillWandItem;
+import thedarkcolour.modkit.item.KillWand;
 
 @Mod(ModKit.ID)
 public class ModKit {
@@ -51,6 +52,7 @@ public class ModKit {
     public static final RegistryObject<Item> CLEAR_WAND = ITEMS.register("clear_wand", () -> new ClearWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final RegistryObject<Item> DISTANCE_WAND = ITEMS.register("distance_wand", () -> new DistanceWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final RegistryObject<Item> CLONE_WAND = ITEMS.register("clone_wand", () -> new CloneWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
+    public static final RegistryObject<Item> KILL_WAND = ITEMS.register("kill_wand", () -> new KillWand(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
 
     static {
         CREATIVE_TABS.register(ID, () -> Util.make(new CreativeModeTab.Builder(CreativeModeTab.Row.TOP, 0), builder -> {
@@ -61,6 +63,7 @@ public class ModKit {
                 output.accept(CLEAR_WAND.get());
                 output.accept(DISTANCE_WAND.get());
                 output.accept(CLONE_WAND.get());
+                output.accept(KILL_WAND.get());
             });
             builder.withTabsBefore(CreativeModeTabs.SPAWN_EGGS);
         }).build());

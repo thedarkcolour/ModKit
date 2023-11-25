@@ -16,8 +16,12 @@
 
 package thedarkcolour.testmod.data;
 
+import it.unimi.dsi.fastutil.objects.ObjectIntPair;
 import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Items;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.crafting.conditions.ItemExistsCondition;
 import thedarkcolour.modkit.data.MKRecipeProvider;
 import thedarkcolour.testmod.TestMod;
@@ -33,5 +37,12 @@ class Recipes {
         recipes.conditional("apples_if_true", List.of(new ItemExistsCondition("minecraft", "bundle")), appender -> {
             recipes.grid2x2(Items.APPLE, MKRecipeProvider.ingredient(Items.DIRT));
         });
+
+        // a recipe with 8 cobblestone and 1 black dye to give blackstone
+        recipes.shapelessCrafting(RecipeCategory.BUILDING_BLOCKS, Items.BLACKSTONE, 8, ObjectIntPair.of(Tags.Items.COBBLESTONE, 8), Items.BLACK_DYE);
+
+        recipes.woodenDoor(Items.IRON_DOOR, Items.IRON_BLOCK);
+        recipes.slab(Items.CACTUS, Items.RED_CANDLE);
+        recipes.stairs(Items.ICE, Items.BLACK_BED);
     }
 }

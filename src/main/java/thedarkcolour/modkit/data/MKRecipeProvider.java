@@ -19,6 +19,8 @@ package thedarkcolour.modkit.data;
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.ints.IntObjectPair;
+import it.unimi.dsi.fastutil.objects.ObjectIntPair;
 import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
@@ -46,10 +48,12 @@ import net.minecraftforge.common.crafting.ConditionalRecipe;
 import net.minecraftforge.common.crafting.conditions.ICondition;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
 import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -88,7 +92,8 @@ public class MKRecipeProvider extends RecipeProvider {
 
     /**
      * Allows creation of conditional recipes.
-     * @param recipeId The ID of the conditional recipe
+     *
+     * @param recipeId   The ID of the conditional recipe
      * @param conditions The list of conditions used for all recipe(s) added in addRecipes
      * @param addRecipes Add recipe(s) to the conditional recipe. Make sure you are using the Consumer from this lambda!
      */
@@ -116,8 +121,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * accepting multiple recipes.
      *
      * @param newWriter The finished recipe consumer used to handle FinishedRecipe generated in this method call
-     * @param action A consumer which receives the new recipe writer for generating new recipes
-     *
+     * @param action    A consumer which receives the new recipe writer for generating new recipes
      * @see #conditional(String, List, Consumer)
      */
     public void pushWriter(Consumer<FinishedRecipe> newWriter, Consumer<Consumer<FinishedRecipe>> action) {
@@ -214,15 +218,20 @@ public class MKRecipeProvider extends RecipeProvider {
 
     /**
      * Generates a shapeless recipe with a list of ingredients (can be a mix of ItemLike, Ingredient, and/or TagKey)
-     * and attempts to also generate a recipe criterion so (hopefully) you don't need to call {@code unlockedBy}
+     * and attempts to also generate a recipe criterion so (hopefully) you don't need to call {@code unlockedBy}.
+     * <p>
+     * Additionally, it is possible to use {@link ObjectIntPair} or {@link IntObjectPair} containing one of the above
+     * types to specify that the ingredient should appear multiple times (specified by the integer of the pair). This
+     * helps avoid repetition of the same ingredient several times in the ingredients list.
      *
      * @param category    The recipe category for showing in the green recipe book
      * @param result      The resulting item of this recipe (NBT and count are included in the generated recipe)
      * @param unlockedBy  A (nullable) pair of criterion name and criterion instance for unlocking the recipe.
      *                    In most cases it is easier to leave this null, but it may be desirable to pick a specific
      *                    criterion or required if ModKit cannot determine a criterion automatically.
-     * @param ingredients Can be ItemLike, Ingredient, RegistryObject or TagKey
-     * @throws IllegalArgumentException if any element of {@code ingredients} is not ItemLike, Ingredient, or TagKey
+     * @param ingredients Can be ItemLike, Ingredient, RegistryObject or TagKey. Can also be ObjectIntPair or IntObjectPair of one of the previous types.
+     * @throws IllegalArgumentException if any element of {@code ingredients} is not ItemLike, Ingredient, or TagKey,
+     *                                  or if {@code ingredients} exceeds 9 ingredients, including any expanded pairs.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
@@ -234,8 +243,10 @@ public class MKRecipeProvider extends RecipeProvider {
             shapeless.unlockedBy(unlockedBy.left(), unlockedBy.right());
         } else {
             boolean noCriterion = true;
+            // Expand the ObjectIntPair and IntObjectPair ingredients to several references to the same ingredient
+            ArrayList<Object> rawIngredients = expandPairIngredients(ingredients);
 
-            for (Object ingredient : ingredients) {
+            for (Object ingredient : rawIngredients) {
                 Preconditions.checkNotNull(ingredient);
 
                 if (ingredient instanceof RegistryObject<?> obj) {
@@ -276,6 +287,42 @@ public class MKRecipeProvider extends RecipeProvider {
         shapeless.save(writer);
     }
 
+    // Helper method to handle ingredient-object pairs
+    private static ArrayList<Object> expandPairIngredients(Object... ingredients) {
+        ArrayList<Object> flattened = new ArrayList<>();
+
+        for (Object o : ingredients) {
+            // Default is to just add the ingredient once
+            Object ingredient = o;
+            int count = 1;
+
+            // Handle pairs
+            if (ingredient instanceof ObjectIntPair<?> pair) {
+                count = pair.rightInt();
+                ingredient = pair.left();
+            } else if (ingredient instanceof IntObjectPair<?> pair) {
+                count = pair.leftInt();
+                ingredient = pair.right();
+            }
+
+            // make it clear that recursive expanding is not permitted
+            if (ingredient instanceof ObjectIntPair<?> || ingredient instanceof IntObjectPair<?>) {
+                throw new IllegalArgumentException("Cannot have an ingredient which is a pair of pairs");
+            }
+
+            // Add the correct ingredient the correct number of times
+            for (int j = 0; j < count; j++) {
+                flattened.add(ingredient);
+            }
+        }
+
+        if (flattened.size() > 9) {
+            throw new IllegalArgumentException("Cannot have more than 9 ingredients in a shapeless crafting recipe");
+        }
+
+        return flattened;
+    }
+
     /**
      * Template for recipes which convert ingot <---> block. Also works for nugget <---> ingot.
      * Two recipes are generated by this method, but the recipe to convert from storage back
@@ -313,7 +360,8 @@ public class MKRecipeProvider extends RecipeProvider {
     /**
      * @deprecated Use the version which accepts a RecipeCategory
      */
-    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = "1.21")
+    @Deprecated(forRemoval = true)
     public void grid2x2(ItemLike result, Ingredient ingredient) {
         this.grid2x2(RecipeCategory.MISC, result, ingredient);
     }
@@ -344,6 +392,151 @@ public class MKRecipeProvider extends RecipeProvider {
             if (group != null)
                 recipe.group(group);
         });
+    }
+
+    public void grid3x2(RecipeCategory category, ItemLike result, ItemLike ingredient) {
+        grid3x2(category, result, 1, Ingredient.of(ingredient));
+    }
+
+    public void grid3x2(RecipeCategory category, ItemLike result, Ingredient ingredient) {
+        grid3x2(category, result, 1, ingredient);
+    }
+
+    public void grid3x2(RecipeCategory category, ItemLike result, int resultCount, ItemLike ingredient) {
+        grid3x2(category, result, resultCount, Ingredient.of(ingredient), null);
+    }
+
+    public void grid3x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient) {
+        grid3x2(category, result, resultCount, ingredient, null);
+    }
+
+    /**
+     * A recipe whose ingredients are the same in 3 wide by 2 high grid shape, like a wall or a trapdoor.
+     *
+     * @param category    The recipe category tab used for displaying in the green recipe book from Vanilla
+     * @param result      The result item (ex. Wall, Trapdoor)
+     * @param resultCount The number of the result item crafted by this recipe
+     * @param ingredient  The ingredient used by every slot of this recipe
+     * @param group       If specified, the group of recipes to be shown along with in the green recipe book from Vanilla
+     */
+    public void grid3x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
+        Preconditions.checkNotNull(this.writer);
+
+        shapedCrafting(category, result, recipe -> {
+            recipe.define('#', ingredient);
+            recipe.pattern("###");
+            recipe.pattern("###");
+            if (group != null)
+                recipe.group(group);
+        });
+    }
+
+    public void grid2x3(RecipeCategory category, ItemLike result, ItemLike ingredient) {
+        grid2x3(category, result, 1, Ingredient.of(ingredient));
+    }
+
+    public void grid2x3(RecipeCategory category, ItemLike result, Ingredient ingredient) {
+        grid2x3(category, result, 1, ingredient);
+    }
+
+    public void grid2x3(RecipeCategory category, ItemLike result, int resultCount, ItemLike ingredient) {
+        grid2x3(category, result, resultCount, Ingredient.of(ingredient), null);
+    }
+
+    public void grid2x3(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient) {
+        grid2x3(category, result, resultCount, ingredient, null);
+    }
+
+    /**
+     * A recipe whose ingredients are the same in 2 wide by 3 high grid shape, like a door.
+     *
+     * @param category    The recipe category tab used for displaying in the green recipe book from Vanilla
+     * @param result      The result item (ex. Door)
+     * @param resultCount The number of the result item crafted by this recipe
+     * @param ingredient  The ingredient used by every slot of this recipe
+     * @param group       If specified, the group of recipes to be shown along with in the green recipe book from Vanilla
+     */
+    public void grid2x3(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
+        Preconditions.checkNotNull(this.writer);
+
+        shapedCrafting(category, result, recipe -> {
+            recipe.define('#', ingredient);
+            recipe.pattern("##");
+            recipe.pattern("##");
+            recipe.pattern("##");
+            if (group != null)
+                recipe.group(group);
+        });
+    }
+
+    public void woodenDoor(ItemLike result, ItemLike input) {
+        woodenDoor(result, Ingredient.of(input));
+    }
+
+    public void woodenDoor(ItemLike result, Ingredient ingredient) {
+        grid2x3(RecipeCategory.REDSTONE, result, 3, ingredient, "wooden_door");
+    }
+
+    public void woodenTrapdoor(ItemLike result, ItemLike input) {
+        woodenTrapdoor(result, Ingredient.of(input));
+    }
+
+    public void woodenTrapdoor(ItemLike result, Ingredient ingredient) {
+        grid3x2(RecipeCategory.REDSTONE, result, 2, ingredient, "wooden_trapdoor");
+    }
+
+    public void stairs(ItemLike result, ItemLike input) {
+        stairs(result, input, null);
+    }
+
+    public void stairs(ItemLike result, Ingredient ingredient) {
+        stairs(result, ingredient, null);
+    }
+
+    public void stairs(ItemLike result, ItemLike input, @Nullable String group) {
+        stairs(result, Ingredient.of(input), group);
+    }
+
+    public void stairs(ItemLike result, Ingredient ingredient, @Nullable String group) {
+        Preconditions.checkNotNull(this.writer);
+
+        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, result, 4, builder -> {
+            builder.define('#', ingredient);
+            builder.pattern("#  ");
+            builder.pattern("## ");
+            builder.pattern("###");
+            if (group != null) builder.group(group);
+        });
+    }
+
+    public void woodenStairs(ItemLike result, ItemLike planks) {
+        stairs(result, planks, "wooden_stairs");
+    }
+
+    public void slab(ItemLike result, ItemLike input) {
+        slab(result, input, null);
+    }
+
+    public void slab(ItemLike result, Ingredient ingredient) {
+        slab(result, ingredient, null);
+    }
+
+    public void slab(ItemLike result, ItemLike input, @Nullable String group) {
+        slab(result, Ingredient.of(input), group);
+    }
+
+    public void slab(ItemLike result, Ingredient ingredient, @Nullable String group) {
+        Preconditions.checkNotNull(this.writer);
+
+        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, result, 6, builder -> {
+            builder.define('#', ingredient);
+            builder.pattern("###");
+            if (group != null) builder.group(group);
+        });
+    }
+
+    public void woodenSlab(ItemLike result, ItemLike planks) {
+        slab(result, planks, "wooden_slab");
     }
 
     public void foodCooking(ItemLike input, ItemLike result, float experience) {
@@ -377,6 +570,14 @@ public class MKRecipeProvider extends RecipeProvider {
         oreSmelting(ingredient, result, experience, 200);
     }
 
+    /**
+     * Adds a furnace recipe and blast furnace recipe for the given input and output. Ideal for ore recipes.
+     *
+     * @param ingredient The input ingredient, ex. Raw Gold Ore
+     * @param result     The resulting item, ex. Gold Ingot
+     * @param experience The amount of experience points awarded for smelting in the furnace or blast furnace
+     * @param duration   The time to smelt in a regular furnace. Blast furnace takes 0.5x as long.
+     */
     public void oreSmelting(Ingredient ingredient, ItemLike result, float experience, int duration) {
         smelting(ingredient, result, experience, duration);
         blasting(ingredient, result, experience, duration / 2);
@@ -570,6 +771,7 @@ public class MKRecipeProvider extends RecipeProvider {
      *     <li>{@link Supplier}&lt;? extends {@link ItemLike}&gt;</li>
      *     <li>{@link Ingredient.Value}</li>
      * </ul>
+     *
      * @param values The values the ingredient can match against
      * @return An ingredient with the specified values
      * @throws IllegalArgumentException If any element in {@code values} is not one of the permitted types listed above

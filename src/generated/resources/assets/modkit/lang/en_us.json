@@ -3,5 +3,6 @@
   "item.modkit.clone_wand": "Clone Wand",
   "item.modkit.distance_wand": "Distance Wand",
   "item.modkit.fill_wand": "Fill Wand",
+  "item.modkit.kill_wand": "Kill Wand",
   "itemGroup.modkit": "ModKit"
 }
