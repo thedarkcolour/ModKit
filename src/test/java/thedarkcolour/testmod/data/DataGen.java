@@ -17,8 +17,8 @@
 package thedarkcolour.testmod.data;
 
 import net.minecraft.core.registries.Registries;
-import net.minecraftforge.data.event.GatherDataEvent;
-import net.minecraftforge.data.loading.DatagenModLoader;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.data.loading.DatagenModLoader;
 import thedarkcolour.modkit.data.DataHelper;
 import thedarkcolour.testmod.TestMod;
 

@@ -16,6 +16,7 @@
 
 package thedarkcolour.testmod;
 
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.item.BlockItem;
@@ -23,37 +24,45 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
 import thedarkcolour.testmod.data.DataGen;
 
-@Mod(TestMod.ID)
+// Use EventBusSubscriber to load this class without calling from main source set
+@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class TestMod {
     public static final String ID = "testmod";
 
-    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, TestMod.ID);
-    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, TestMod.ID);
-    private static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, TestMod.ID);
+    private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(TestMod.ID);
+    private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(TestMod.ID);
+    private static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(Registries.MOB_EFFECT, TestMod.ID);
 
-    public static final RegistryObject<Block> RED_BLOCK = BLOCKS.register("red_block", () -> new Block(BlockBehaviour.Properties.of().strength(2.0f).sound(SoundType.HONEY_BLOCK))) ;
-    public static final RegistryObject<Item> RED_BLOCK_ITEM = ITEMS.register("red_block", () -> new BlockItem(RED_BLOCK.get(), new Item.Properties().stacksTo(3)));
+    public static final DeferredBlock<Block> RED_BLOCK = BLOCKS.register("red_block", () -> new Block(BlockBehaviour.Properties.of().strength(2.0f).sound(SoundType.HONEY_BLOCK))) ;
+    public static final DeferredItem<Item> RED_BLOCK_ITEM = ITEMS.register("red_block", () -> new BlockItem(RED_BLOCK.get(), new Item.Properties().stacksTo(3)));
 
-    public static final RegistryObject<Item> ORANGE = ITEMS.register("orange", () -> new Item(new Item.Properties().stacksTo(6)));
-    public static final RegistryObject<Block> ORANGE_BLOCK = BLOCKS.register("orange_block", () -> new Block(BlockBehaviour.Properties.of().strength(12.0f).sound(SoundType.HONEY_BLOCK))) ;
-    public static final RegistryObject<Item> ORANGE_BLOCK_ITEM = ITEMS.register("orange_block", () -> new BlockItem(ORANGE_BLOCK.get(), new Item.Properties().stacksTo(10)));
+    public static final DeferredItem<Item> ORANGE = ITEMS.register("orange", () -> new Item(new Item.Properties().stacksTo(6)));
+    public static final DeferredBlock<Block> ORANGE_BLOCK = BLOCKS.register("orange_block", () -> new Block(BlockBehaviour.Properties.of().strength(12.0f).sound(SoundType.HONEY_BLOCK))) ;
+    public static final DeferredItem<Item> ORANGE_BLOCK_ITEM = ITEMS.register("orange_block", () -> new BlockItem(ORANGE_BLOCK.get(), new Item.Properties().stacksTo(10)));
 
-    public static final RegistryObject<MobEffect> BRUISE = MOB_EFFECTS.register("bruise", () -> new MobEffect(MobEffectCategory.HARMFUL, 1) {});
+    public static final DeferredHolder<MobEffect, MobEffect> BRUISE = MOB_EFFECTS.register("bruise", () -> new MobEffect(MobEffectCategory.HARMFUL, 1) {});
 
-    public TestMod() {
+    static {
+        @SuppressWarnings({"removal", "deprecation"})
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
-
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         MOB_EFFECTS.register(modBus);
+    }
 
-        modBus.addListener(DataGen::gatherData);
+    // Make NeoForge shut up about no SubscribeEvent methods
+    @SubscribeEvent
+    public static void gatherData(GatherDataEvent event) {
+        DataGen.gatherData(event);
     }
 }

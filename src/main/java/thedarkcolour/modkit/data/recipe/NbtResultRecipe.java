@@ -16,18 +16,14 @@
 
 package thedarkcolour.modkit.data.recipe;
 
-import com.google.gson.JsonObject;
 import net.minecraft.advancements.Advancement;
-import net.minecraft.advancements.CriterionTriggerInstance;
+import net.minecraft.advancements.Criterion;
 import net.minecraft.data.recipes.RecipeBuilder;
 import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Objects;
 
 public abstract class NbtResultRecipe<T extends RecipeBuilder> implements RecipeBuilder {
     protected final RecipeCategory category;
@@ -35,9 +31,11 @@ public abstract class NbtResultRecipe<T extends RecipeBuilder> implements Recipe
     protected final int resultCount;
     @Nullable
     protected final CompoundTag resultNbt;
-    protected final Advancement.Builder advancement = Advancement.Builder.advancement();
+    @SuppressWarnings("removal")
+    protected final Advancement.Builder advancement = Advancement.Builder.recipeAdvancement().parent(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
     @Nullable
     protected String group;
+    private boolean hasCriteria;
 
     public NbtResultRecipe(RecipeCategory category, Item result, int resultCount, @Nullable CompoundTag resultNbt) {
         this.category = category;
@@ -47,8 +45,9 @@ public abstract class NbtResultRecipe<T extends RecipeBuilder> implements Recipe
     }
 
     @Override
-    public T unlockedBy(String name, CriterionTriggerInstance trigger) {
+    public T unlockedBy(String name, Criterion<?> trigger) {
         this.advancement.addCriterion(name, trigger);
+        this.hasCriteria = true;
         return self();
     }
 
@@ -70,30 +69,7 @@ public abstract class NbtResultRecipe<T extends RecipeBuilder> implements Recipe
     }
 
     public boolean isMissingCriterion() {
-        return advancement.getCriteria().isEmpty();
-    }
-
-    public static String getCategoryName(RecipeCategory category) {
-        return switch (category) {
-            case BUILDING_BLOCKS -> "building";
-            case TOOLS, COMBAT -> "equipment";
-            case REDSTONE -> "redstone";
-            default -> "misc";
-        };
-    }
-
-    public static JsonObject serializeResult(Item item, int count, @Nullable CompoundTag nbt) {
-        JsonObject resultObj = new JsonObject();
-        resultObj.addProperty("item", Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item)).toString());
-
-        if (count > 1) {
-            resultObj.addProperty("count", count);
-        }
-        if (nbt != null) {
-            resultObj.addProperty("nbt", nbt.getAsString());
-        }
-
-        return resultObj;
+        return !this.hasCriteria;
     }
 
     @SuppressWarnings("unchecked")

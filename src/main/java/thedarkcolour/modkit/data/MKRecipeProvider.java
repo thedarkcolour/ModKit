@@ -17,17 +17,19 @@
 package thedarkcolour.modkit.data;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
+import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.CriterionTriggerInstance;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeBuilder;
 import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.data.recipes.SimpleCookingRecipeBuilder;
@@ -42,12 +44,12 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SmeltingRecipe;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.common.crafting.ConditionalRecipe;
-import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.common.crafting.ConditionalRecipe;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
@@ -56,7 +58,7 @@ import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -69,24 +71,24 @@ import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MKRecipeProvider extends RecipeProvider {
     private final String modid;
-    private final BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes;
+    private final BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes;
     @Nullable
-    private Consumer<FinishedRecipe> writer;
+    private RecipeOutput output;
 
-    protected MKRecipeProvider(PackOutput output, String modid, BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
-        super(output);
+    protected MKRecipeProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider, String modid, BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
+        super(output, lookupProvider);
         this.modid = modid;
         this.addRecipes = addRecipes;
     }
 
     @Override
-    protected void buildRecipes(Consumer<FinishedRecipe> writer) {
-        this.writer = writer;
-        this.addRecipes.accept(writer, this);
-        this.writer = null;
+    protected void buildRecipes(RecipeOutput output) {
+        this.output = output;
+        this.addRecipes.accept(output, this);
+        this.output = null;
     }
 
-    public void conditional(String recipeId, List<ICondition> conditions, Consumer<Consumer<FinishedRecipe>> addRecipes) {
+    public void conditional(String recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
         conditional(new ResourceLocation(this.modid, recipeId), conditions, addRecipes);
     }
 
@@ -97,43 +99,36 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param conditions The list of conditions used for all recipe(s) added in addRecipes
      * @param addRecipes Add recipe(s) to the conditional recipe. Make sure you are using the Consumer from this lambda!
      */
-    public void conditional(ResourceLocation recipeId, List<ICondition> conditions, Consumer<Consumer<FinishedRecipe>> addRecipes) {
-        Preconditions.checkNotNull(this.writer);
+    public void conditional(ResourceLocation recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
+        Preconditions.checkNotNull(this.output);
         Preconditions.checkArgument(!conditions.isEmpty(), "Cannot add a recipe with no conditions.");
 
-        var builder = ConditionalRecipe.builder();
+        RecipeOutput outputWithConditions = this.output.withConditions(conditions.toArray(ICondition[]::new));
 
-        pushWriter(recipe -> {
-            for (var condition : conditions) {
-                builder.addCondition(condition);
-            }
-            builder.addRecipe(recipe);
-        }, addRecipes);
-
-        builder.build(this.writer, recipeId);
+        pushRecipeOutput(outputWithConditions, addRecipes);
     }
 
     /**
-     * This method temporarily changes the {@link Consumer<FinishedRecipe>} used for the finished recipe writer.
+     * This method temporarily changes the {@link RecipeOutput} used for the finished recipe writer.
      * By default, the writer used by MKRecipeProvider is provided in {@link RecipeProvider#run(CachedOutput)}.
      * This method may be useful when an alternative behavior for handling FinishedRecipes generated by this class
      * is desired. One example is with {@link ConditionalRecipe}, which provides its own recipe builder for
      * accepting multiple recipes.
      *
-     * @param newWriter The finished recipe consumer used to handle FinishedRecipe generated in this method call
+     * @param newOutput The finished recipe output used to handle recipes generated in this method call
      * @param action    A consumer which receives the new recipe writer for generating new recipes
      * @see #conditional(String, List, Consumer)
      */
-    public void pushWriter(Consumer<FinishedRecipe> newWriter, Consumer<Consumer<FinishedRecipe>> action) {
-        Preconditions.checkNotNull(newWriter);
+    public void pushRecipeOutput(RecipeOutput newOutput, Consumer<RecipeOutput> action) {
+        Preconditions.checkNotNull(newOutput);
 
-        var realWriter = this.writer;
-        this.writer = newWriter;
+        RecipeOutput realWriter = this.output;
+        this.output = newOutput;
 
         try {
-            action.accept(this.writer);
+            action.accept(this.output);
         } finally {
-            this.writer = realWriter;
+            this.output = realWriter;
         }
     }
 
@@ -170,7 +165,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param recipe      Function, usually a lambda, which defines the recipe layout by calling define and key on the recipe builder.
      */
     public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         NbtShapedRecipeBuilder builder = new NbtShapedRecipeBuilder(category, result, resultCount, resultNbt);
         recipe.accept(builder);
@@ -180,7 +175,7 @@ public class MKRecipeProvider extends RecipeProvider {
 
         ResourceLocation id = createRecipeId(recipeId, builder.getResult());
 
-        builder.save(this.writer, id);
+        builder.save(this.output, id);
     }
 
     public ResourceLocation defaultRecipeId(ItemLike result) {
@@ -208,7 +203,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
-        shapelessCrafting(category, new ItemStack(result, resultCount, null), ingredients);
+        shapelessCrafting(category, new ItemStack(result, resultCount), ingredients);
     }
 
 
@@ -234,8 +229,8 @@ public class MKRecipeProvider extends RecipeProvider {
      *                                  or if {@code ingredients} exceeds 9 ingredients, including any expanded pairs.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
-        Preconditions.checkNotNull(writer);
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+        Preconditions.checkNotNull(output);
 
         NbtShapelessRecipeBuilder shapeless = new NbtShapelessRecipeBuilder(category, result.getItem(), result.getCount(), result.getTag());
 
@@ -249,7 +244,8 @@ public class MKRecipeProvider extends RecipeProvider {
             for (Object ingredient : rawIngredients) {
                 Preconditions.checkNotNull(ingredient);
 
-                if (ingredient instanceof RegistryObject<?> obj) {
+                // Accounts for DeferredItem and DeferredBlock
+                if (ingredient instanceof DeferredHolder<?, ?> obj) {
                     ingredient = obj.get();
                     Preconditions.checkArgument(ingredient instanceof ItemLike);
                 }
@@ -284,7 +280,7 @@ public class MKRecipeProvider extends RecipeProvider {
             }
         }
 
-        shapeless.save(writer);
+        shapeless.save(output);
     }
 
     // Helper method to handle ingredient-object pairs
@@ -332,14 +328,14 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param material The ingredient of the 3x3 (iron ingot for block, iron nugget for ingot, diamond for block, etc.)
      */
     public void storage3x3(ItemLike storage, ItemLike material) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         grid3x3(RecipeCategory.BUILDING_BLOCKS, storage, Ingredient.of(material));
 
         ShapelessRecipeBuilder fromStorage = new ShapelessRecipeBuilder(RecipeCategory.MISC, material, 9);
         unlockedByHaving(fromStorage, storage);
         fromStorage.requires(storage);
-        fromStorage.save(this.writer, id(material).withSuffix("_from_" + id(storage).getPath()));
+        fromStorage.save(this.output, id(material).withSuffix("_from_" + id(storage).getPath()));
     }
 
     public void grid3x3(ItemLike result, Ingredient ingredient) {
@@ -347,7 +343,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void grid3x3(RecipeCategory category, ItemLike result, Ingredient ingredient) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         shapedCrafting(category, result, recipe -> {
             recipe.define('#', ingredient);
@@ -383,7 +379,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         shapedCrafting(category, result, recipe -> {
             recipe.define('#', ingredient);
@@ -420,7 +416,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param group       If specified, the group of recipes to be shown along with in the green recipe book from Vanilla
      */
     public void grid3x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         shapedCrafting(category, result, recipe -> {
             recipe.define('#', ingredient);
@@ -457,7 +453,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param group       If specified, the group of recipes to be shown along with in the green recipe book from Vanilla
      */
     public void grid2x3(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         shapedCrafting(category, result, recipe -> {
             recipe.define('#', ingredient);
@@ -498,7 +494,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void stairs(ItemLike result, Ingredient ingredient, @Nullable String group) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         shapedCrafting(RecipeCategory.BUILDING_BLOCKS, result, 4, builder -> {
             builder.define('#', ingredient);
@@ -526,7 +522,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void slab(ItemLike result, Ingredient ingredient, @Nullable String group) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
         shapedCrafting(RecipeCategory.BUILDING_BLOCKS, result, 6, builder -> {
             builder.define('#', ingredient);
@@ -636,11 +632,10 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void genericCooking(RecipeCategory category, RecipeSerializer<? extends AbstractCookingRecipe> serializer, Ingredient ingredient, ItemLike result, float experience, int duration) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
-        var builder = SimpleCookingRecipeBuilder.generic(ingredient, category, result, experience, duration, serializer);
-        unlockedByHaving(builder, ingredient);
         String id = path(result);
+        AbstractCookingRecipe.Factory<? extends AbstractCookingRecipe> factory = SmeltingRecipe::new;
         if (serializer == RecipeSerializer.CAMPFIRE_COOKING_RECIPE) {
             id += "_from_campfire_cooking";
         } else if (serializer == RecipeSerializer.BLASTING_RECIPE) {
@@ -648,13 +643,16 @@ public class MKRecipeProvider extends RecipeProvider {
         } else if (serializer == RecipeSerializer.SMOKING_RECIPE) {
             id += "_from_smoking";
         }
-        builder.save(this.writer, createRecipeId(id, result.asItem()));
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        SimpleCookingRecipeBuilder builder = SimpleCookingRecipeBuilder.generic(ingredient, category, result, experience, duration, serializer, (AbstractCookingRecipe.Factory) factory);
+        unlockedByHaving(builder, ingredient);
+        builder.save(this.output, createRecipeId(id, result.asItem()));
     }
 
     public void netheriteUpgrade(RecipeCategory category, Ingredient input, ItemLike result) {
-        Preconditions.checkNotNull(this.writer);
+        Preconditions.checkNotNull(this.output);
 
-        unlockedByHaving(smithing(Ingredient.of(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), input, Ingredient.of(Tags.Items.INGOTS_NETHERITE), category, result.asItem()), Tags.Items.INGOTS_NETHERITE).save(this.writer, defaultRecipeId(result));
+        unlockedByHaving(smithing(Ingredient.of(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), input, Ingredient.of(Tags.Items.INGOTS_NETHERITE), category, result.asItem()), Tags.Items.INGOTS_NETHERITE).save(this.output, defaultRecipeId(result));
     }
 
     /**
@@ -674,17 +672,15 @@ public class MKRecipeProvider extends RecipeProvider {
      * @return True if a criterion was added to the recipe
      */
     public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.getItems().length == 1) {
-            if (ingredient.toJson() instanceof JsonObject ingredientObj) {
-                if (ingredientObj.has("item")) {
-                    ItemStack stack = ingredient.getItems()[0];
-                    MKRecipeProvider.unlockedByHaving(builder, stack.getItem());
-                    return true;
-                } else if (ingredientObj.has("tag")) {
-                    TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(ingredientObj.get("tag").getAsString()));
-                    MKRecipeProvider.unlockedByHaving(builder, tag);
-                    return true;
-                }
+        if (ingredient.getValues().length == 1) {
+            Ingredient.Value value = ingredient.getValues()[0];
+
+            if (value instanceof Ingredient.ItemValue itemValue) {
+                MKRecipeProvider.unlockedByHaving(builder, itemValue.item().getItem());
+                return true;
+            } else if (value instanceof Ingredient.TagValue tagValue) {
+                MKRecipeProvider.unlockedByHaving(builder, tagValue.tag());
+                return true;
             }
         }
 
@@ -715,7 +711,7 @@ public class MKRecipeProvider extends RecipeProvider {
         return unlockedBy(recipeBuilder, has(tag));
     }
 
-    private static <T> T unlockedBy(T recipeBuilder, CriterionTriggerInstance criterion) {
+    private static <T> T unlockedBy(T recipeBuilder, Criterion<?> criterion) {
         if (recipeBuilder instanceof RecipeBuilder b) {
             b.unlockedBy("has_item", criterion);
         } else if (recipeBuilder instanceof SmithingTrimRecipeBuilder b) {
@@ -730,7 +726,11 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public static String path(ItemLike item) {
-        return Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item.asItem()), "Item " + item.asItem() + " not found in items registry!").getPath();
+        if (BuiltInRegistries.ITEM.containsValue(item.asItem())) {
+            return BuiltInRegistries.ITEM.getKey(item.asItem()).getPath();
+        } else {
+            throw new IllegalArgumentException("Item " + item.asItem() + " not found in items registry!");
+        }
     }
 
     public static Ingredient ingredient(ItemLike item) {

@@ -20,10 +20,10 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.resources.ResourceKey;
-import net.minecraftforge.common.util.Lazy;
-import net.minecraftforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.common.util.Lazy;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,10 +175,10 @@ public class DataHelper {
      *                   built-in methods for common recipe types. If you need something more advanced, you may write
      *                   methods using the given finished recipe writer and call them in your addRecipes function.
      */
-    public MKRecipeProvider createRecipes(BiConsumer<Consumer<FinishedRecipe>, MKRecipeProvider> addRecipes) {
+    public MKRecipeProvider createRecipes(BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
         this.checkNotCreated(this.recipes, "Recipes");
 
-        this.recipes = new MKRecipeProvider(this.event.getGenerator().getPackOutput(), this.modid, addRecipes);
+        this.recipes = new MKRecipeProvider(this.event.getGenerator().getPackOutput(), this.event.getLookupProvider(), this.modid, addRecipes);
         this.event.getGenerator().addProvider(this.event.includeServer(), this.recipes);
 
         return this.recipes;

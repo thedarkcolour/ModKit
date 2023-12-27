@@ -16,9 +16,11 @@
 
 package thedarkcolour.modkit.data;
 
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
@@ -27,10 +29,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.common.data.LanguageProvider;
-import net.minecraftforge.fluids.FluidType;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.common.data.LanguageProvider;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.text.WordUtils;
 import org.jetbrains.annotations.ApiStatus;
@@ -98,11 +99,11 @@ public class MKEnglishProvider extends LanguageProvider {
 
         // Registries which will have names generated automatically
         this.autoTranslatedRegistries = new ArrayList<>();
-        autoTranslatedRegistries.add(ForgeRegistries.Keys.ITEMS);
-        autoTranslatedRegistries.add(ForgeRegistries.Keys.BLOCKS);
-        autoTranslatedRegistries.add(ForgeRegistries.Keys.ENTITY_TYPES);
-        autoTranslatedRegistries.add(ForgeRegistries.Keys.ENCHANTMENTS);
-        autoTranslatedRegistries.add(ForgeRegistries.Keys.FLUID_TYPES);
+        autoTranslatedRegistries.add(Registries.ITEM);
+        autoTranslatedRegistries.add(Registries.BLOCK);
+        autoTranslatedRegistries.add(Registries.ENTITY_TYPE);
+        autoTranslatedRegistries.add(Registries.ENCHANTMENT);
+        autoTranslatedRegistries.add(NeoForgeRegistries.Keys.FLUID_TYPES);
     }
 
     @Override
@@ -187,8 +188,8 @@ public class MKEnglishProvider extends LanguageProvider {
         add(getTranslationKey(key), name);
     }
 
-    public void addGeneric(RegistryObject<?> key, String name) {
-        add(key.get(), name);
+    public void addGeneric(Holder<?> key, String name) {
+        add(key.value(), name);
     }
 
     public String getTranslationKey(Object object) {

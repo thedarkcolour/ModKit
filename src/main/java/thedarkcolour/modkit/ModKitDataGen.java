@@ -16,7 +16,7 @@
 
 package thedarkcolour.modkit;
 
-import net.minecraftforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
 import thedarkcolour.modkit.data.DataHelper;
 import thedarkcolour.modkit.data.MKEnglishProvider;
 

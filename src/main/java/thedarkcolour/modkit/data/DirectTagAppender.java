@@ -22,12 +22,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagBuilder;
 import net.minecraft.tags.TagEntry;
 import net.minecraft.tags.TagKey;
-import net.minecraftforge.common.extensions.IForgeTagAppender;
+import net.neoforged.neoforge.common.extensions.ITagAppenderExtension;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements IForgeTagAppender<T> {
+public class DirectTagAppender<T> extends TagsProvider.TagAppender<T> implements ITagAppenderExtension<T> {
     private final Function<T, ResourceKey<T>> keyGetter;
 
     public DirectTagAppender(TagBuilder builder, Function<T, ResourceKey<T>> keyGetter, String modId) {

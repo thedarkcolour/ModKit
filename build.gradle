@@ -1,6 +1,8 @@
 plugins {
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'java-library'
+    id 'idea'
     id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.0.57'
 }
 
 version = '1.0'
@@ -11,89 +13,22 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-minecraft {
-    mappings channel: 'official', version: '1.20.1'
+runs {
+    configureEach {
+        systemProperty 'forge.logging.console.level', 'debug'
 
-    runs {
-        client {
-            workingDirectory project.file('run')
-			
-            property 'forge.logging.console.level', 'debug'
+        modSource project.sourceSets.main
+    }
 
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-            }
-        }
+    create("client")
 
-        server {
-            workingDirectory project.file('run')
+    server {
+        programArgument '--nogui'
+    }
 
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run')
-        }
-
-        modkitData {
-            workingDirectory project.file('run')
-
-            parent runs.data
-
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'modkit', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        testmodClient {
-            workingDirectory project.file('run')
-
-            property 'forge.logging.console.level', 'debug'
-
-            parent runs.client
-            ideaModule "${project.name}.test"
-
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-                testmod {
-                    source sourceSets.test
-                }
-            }
-        }
-
-        testmodData {
-            workingDirectory project.file('run')
-
-            parent runs.data
-            ideaModule "${project.name}.test"
-
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'testmod', '--all', '--output', file('src/generated_test/resources/'), '--existing', file('src/test/resources')
-
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-                testmod {
-                    source sourceSets.test
-                }
-            }
-        }
+    data {
+        modSource project.sourceSets.test
+        programArguments.addAll '--mod', 'modkit', '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', file('src/main/resources/').absolutePath
     }
 }
 
@@ -102,7 +37,7 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 sourceSets.test.resources { srcDir 'src/generated_test/resources' }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.20.1-47.0.3'
+    implementation "net.neoforged:neoforge:${neo_version}"
 }
 
 processResources {
@@ -138,7 +73,7 @@ publishing {
     }
     repositories {
         maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            url "file://${project.projectDir}/repo"
         }
     }
 }

@@ -17,21 +17,19 @@
 package thedarkcolour.testmod.data;
 
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.common.crafting.conditions.ItemExistsCondition;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.conditions.ItemExistsCondition;
 import thedarkcolour.modkit.data.MKRecipeProvider;
 import thedarkcolour.testmod.TestMod;
 
 import java.util.List;
-import java.util.function.Consumer;
 
 // Package private so that multiple mods can use these names without having a ton of autocomplete options
 class Recipes {
-    static void addRecipes(Consumer<FinishedRecipe> writer, MKRecipeProvider recipes) {
+    static void addRecipes(RecipeOutput output, MKRecipeProvider recipes) {
         recipes.storage3x3(TestMod.ORANGE_BLOCK.get(), TestMod.ORANGE.get());
 
         recipes.conditional("apples_if_true", List.of(new ItemExistsCondition("minecraft", "bundle")), appender -> {
