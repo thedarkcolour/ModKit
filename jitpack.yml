@@ -1,2 +1,3 @@
-before_install:
-    - ./gradlew --refresh-dependencies
+install:
+  - ./gradlew --refresh-dependencies
+  - ./gradlew publishToMavenLocal
