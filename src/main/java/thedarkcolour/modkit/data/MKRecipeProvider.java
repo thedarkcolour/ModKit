@@ -21,7 +21,6 @@ import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
 import net.minecraft.advancements.Criterion;
-import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -739,12 +738,12 @@ public class MKRecipeProvider extends RecipeProvider {
         return Ingredient.of(items);
     }
 
-    public static Ingredient ingredient(Supplier<? extends ItemLike> item) {
+    public static Ingredient lazyIngredient(Supplier<? extends ItemLike> item) {
         return ingredient(item.get());
     }
 
     @SafeVarargs
-    public static Ingredient ingredient(Supplier<? extends ItemLike>... items) {
+    public static Ingredient lazyIngredient(Supplier<? extends ItemLike>... items) {
         ItemLike[] values = new ItemLike[items.length];
         for (int i = 0; i < items.length; i++) {
             values[i] = items[i].get();
