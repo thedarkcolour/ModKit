@@ -19,7 +19,6 @@ package thedarkcolour.modkit.item;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.InteractionHand;
@@ -35,6 +34,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import thedarkcolour.modkit.ModKit;
 
 import java.util.HashMap;
 import java.util.List;
@@ -50,9 +50,9 @@ public abstract class AbstractFillWand extends Item {
     protected abstract MutableComponent getFillMessage();
 
     protected void fill(ItemStack stack, BlockState state, BlockPos pos, Level level, @Nullable Player player) {
-        var startPosNbt = stack.getTagElement("StartPos");
-        if (startPosNbt != null) {
-            var startPos = NbtUtils.readBlockPos(startPosNbt);
+        var startPos = stack.get(ModKit.START_POS_COMPONENT);
+
+        if (startPos != null) {
             var builder = ImmutableMap.<BlockPos, BlockState>builder();
 
             for (var blockPos : BlockPos.betweenClosed(startPos, pos)) {
@@ -66,12 +66,12 @@ public abstract class AbstractFillWand extends Item {
 
                 player.displayClientMessage(getFillMessage().append(String.format("(%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
             }
-            stack.removeTagKey("StartPos");
+            stack.remove(ModKit.START_POS_COMPONENT);
         }
     }
 
     protected void saveStartPos(ItemStack stack, BlockPos pos, @Nullable Player player) {
-        stack.addTagElement("StartPos", NbtUtils.writeBlockPos(pos));
+        stack.set(ModKit.START_POS_COMPONENT, pos);
         if (player != null) {
             player.displayClientMessage(Component.literal(String.format("Starting position: %d %d %d", pos.getX(), pos.getY(), pos.getZ())), true);
         }
@@ -91,7 +91,7 @@ public abstract class AbstractFillWand extends Item {
     public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand hand) {
         if (!pLevel.isClientSide) {
             if (pPlayer.isShiftKeyDown()) {
-                pPlayer.getItemInHand(hand).removeTagKey("StartPos");
+                pPlayer.getItemInHand(hand).remove(ModKit.START_POS_COMPONENT.get());
                 pPlayer.displayClientMessage(Component.literal("Cleared start position"), true);
             } else if (undoMap.get(pPlayer) != null) {
                 pPlayer.displayClientMessage(Component.literal("Hold to undo"), true);
@@ -139,10 +139,9 @@ public abstract class AbstractFillWand extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag advanced) {
-        var startPosNbt = stack.getTagElement("StartPos");
-        if (startPosNbt != null) {
-            var startPos = NbtUtils.readBlockPos(startPosNbt);
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag advanced) {
+        var startPos = stack.get(ModKit.START_POS_COMPONENT.get());
+        if (startPos != null) {
             tooltip.add(Component.literal("Start Position: (" + startPos.getX() + ", " + startPos.getY() + ", " + startPos.getZ() + ")"));
         } else {
             tooltip.add(Component.literal("Tip: Hold sneak click in the air to undo last operation").withStyle(ChatFormatting.DARK_GRAY));
@@ -151,6 +150,6 @@ public abstract class AbstractFillWand extends Item {
 
     @Override
     public Component getName(ItemStack stack) {
-        return stack.getTagElement("StartPos") == null ? super.getName(stack) : Component.translatable(this.getDescriptionId(stack)).append("*");
+        return stack.get(ModKit.START_POS_COMPONENT.get()) == null ? super.getName(stack) : Component.translatable(this.getDescriptionId(stack)).append("*");
     }
 }

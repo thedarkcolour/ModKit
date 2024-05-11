@@ -24,9 +24,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -35,7 +35,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import thedarkcolour.testmod.data.DataGen;
 
 // Use EventBusSubscriber to load this class without calling from main source set
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+//@Mod(modid = TestMod.ID)
+@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 public class TestMod {
     public static final String ID = "testmod";
 
@@ -52,9 +53,7 @@ public class TestMod {
 
     public static final DeferredHolder<MobEffect, MobEffect> BRUISE = MOB_EFFECTS.register("bruise", () -> new MobEffect(MobEffectCategory.HARMFUL, 1) {});
 
-    static {
-        @SuppressWarnings({"removal", "deprecation"})
-        var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+    public TestMod(IEventBus modBus) {
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         MOB_EFFECTS.register(modBus);

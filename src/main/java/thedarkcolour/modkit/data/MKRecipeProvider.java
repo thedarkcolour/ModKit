@@ -26,15 +26,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.RecipeBuilder;
-import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.data.recipes.RecipeOutput;
-import net.minecraft.data.recipes.RecipeProvider;
-import net.minecraft.data.recipes.ShapelessRecipeBuilder;
-import net.minecraft.data.recipes.SimpleCookingRecipeBuilder;
-import net.minecraft.data.recipes.SmithingTransformRecipeBuilder;
-import net.minecraft.data.recipes.SmithingTrimRecipeBuilder;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.data.recipes.*;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -50,12 +42,14 @@ import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
-import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
-import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
+import thedarkcolour.modkit.data.recipe.ItemDataMap;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -72,6 +66,10 @@ public class MKRecipeProvider extends RecipeProvider {
     private final BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes;
     @Nullable
     private RecipeOutput output;
+
+    private static final VarHandle SHAPELESS_CRITERIA;
+    private static final VarHandle SHAPED_CRITERIA;
+    private static final VarHandle SHAPED_KEYS;
 
     protected MKRecipeProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider, String modid, BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
         super(output, lookupProvider);
@@ -129,24 +127,24 @@ public class MKRecipeProvider extends RecipeProvider {
         }
     }
 
-    public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
+    public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<ShapedRecipeBuilder> recipe) {
         shapedCrafting(recipeId, category, result, 1, recipe);
     }
 
-    public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, int resultCount, Consumer<NbtShapedRecipeBuilder> recipe) {
-        shapedCrafting(recipeId, category, result, resultCount, null, recipe);
+    public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, int resultCount, Consumer<ShapedRecipeBuilder> recipe) {
+        shapedCrafting(recipeId, category, result, resultCount, ItemDataMap.of(), recipe);
     }
 
-    public void shapedCrafting(RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
+    public void shapedCrafting(RecipeCategory category, ItemLike result, Consumer<ShapedRecipeBuilder> recipe) {
         shapedCrafting(category, result, 1, recipe);
     }
 
-    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, Consumer<NbtShapedRecipeBuilder> recipe) {
-        shapedCrafting(category, result, resultCount, null, recipe);
+    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, Consumer<ShapedRecipeBuilder> recipe) {
+        shapedCrafting(category, result, resultCount, ItemDataMap.of(), recipe);
     }
 
-    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
-        shapedCrafting(null, category, result, resultCount, resultNbt, recipe);
+    public void shapedCrafting(RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Consumer<ShapedRecipeBuilder> recipe) {
+        shapedCrafting(null, category, result, resultCount, resultData, recipe);
     }
 
     /**
@@ -158,16 +156,17 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param category    Recipe category for displaying in the green recipe book
      * @param result      The result item
      * @param resultCount The number of result items resulting from one craft of this recipe
-     * @param resultNbt   The NBT of the result item(s)
+     * @param resultData  The data components of the result item
      * @param recipe      Function, usually a lambda, which defines the recipe layout by calling define and key on the recipe builder.
      */
-    public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt, Consumer<NbtShapedRecipeBuilder> recipe) {
+    public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Consumer<ShapedRecipeBuilder> recipe) {
         Preconditions.checkNotNull(this.output);
 
-        NbtShapedRecipeBuilder builder = new NbtShapedRecipeBuilder(category, result, resultCount, resultNbt);
+        ItemStack resultStack = newItemStack(result, resultCount, resultData);
+        ShapedRecipeBuilder builder = new ShapedRecipeBuilder(category, resultStack);
         recipe.accept(builder);
-        if (builder.isMissingCriterion()) {
-            builder.attemptAutoCriterion();
+        if (isMissingCriterion(builder)) {
+            attemptAutoCriterion(builder);
         }
 
         ResourceLocation id = createRecipeId(recipeId, builder.getResult());
@@ -203,6 +202,9 @@ public class MKRecipeProvider extends RecipeProvider {
         shapelessCrafting(category, new ItemStack(result, resultCount), ingredients);
     }
 
+    public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Object... ingredients) {
+        shapelessCrafting(category, newItemStack(result, resultCount, resultData), ingredients);
+    }
 
     public void shapelessCrafting(RecipeCategory category, ItemStack result, Object... ingredients) {
         shapelessCrafting(category, result, null, ingredients);
@@ -229,7 +231,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(output);
 
-        NbtShapelessRecipeBuilder shapeless = new NbtShapelessRecipeBuilder(category, result.getItem(), result.getCount(), result.getTag());
+        ShapelessRecipeBuilder shapeless = new ShapelessRecipeBuilder(category, result);
 
         if (unlockedBy != null) {
             shapeless.unlockedBy(unlockedBy.left(), unlockedBy.right());
@@ -272,7 +274,7 @@ public class MKRecipeProvider extends RecipeProvider {
                 }
             }
 
-            if (noCriterion && shapeless.isMissingCriterion()) {
+            if (noCriterion && isMissingCriterion(shapeless)) {
                 throw new IllegalStateException("Argument list must contain one TagKey or ItemLike for adding automatic advancement criterion");
             }
         }
@@ -314,6 +316,36 @@ public class MKRecipeProvider extends RecipeProvider {
         }
 
         return flattened;
+    }
+
+    private static boolean isMissingCriterion(RecipeBuilder builder) {
+        if (builder instanceof ShapelessRecipeBuilder) {
+            return ((Map<?, ?>) SHAPELESS_CRITERIA.get(builder)).isEmpty();
+        } else if (builder instanceof ShapedRecipeBuilder) {
+            return ((Map<?, ?>) SHAPED_CRITERIA.get(builder)).isEmpty();
+        } else {
+            throw new IllegalArgumentException("Unable to determine if recipe is missing criterion");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void attemptAutoCriterion(ShapedRecipeBuilder builder) {
+        for (Ingredient ingredient : ((Map<Character, Ingredient>) SHAPED_KEYS.get(builder)).values()) {
+            if (MKRecipeProvider.unlockedByHaving(builder, ingredient)) {
+                return;
+            }
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static ItemStack newItemStack(ItemLike item, int count, ItemDataMap data) {
+        ItemStack stack = new ItemStack(item, count);
+
+        for (ItemDataMap.Entry entry : data.entrySet()) {
+            stack.set(entry.type(), entry.value());
+        }
+
+        return stack;
     }
 
     /**
@@ -792,5 +824,24 @@ public class MKRecipeProvider extends RecipeProvider {
 
     private static IllegalArgumentException nonIngredientArgument(Object item) {
         return new IllegalArgumentException("Argument " + item + " is not instance of Ingredient, TagKey, or ItemLike");
+    }
+
+    static {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        VarHandle shapeless;
+        VarHandle shaped;
+        VarHandle shapedKeys;
+
+        try {
+            shapeless = MethodHandles.privateLookupIn(ShapelessRecipeBuilder.class, lookup).findVarHandle(ShapelessRecipeBuilder.class, "criteria", Map.class);
+            shaped = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "criteria", Map.class);
+            shapedKeys = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "key", Map.class);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+
+        SHAPELESS_CRITERIA = shapeless;
+        SHAPED_CRITERIA = shaped;
+        SHAPED_KEYS = shapedKeys;
     }
 }

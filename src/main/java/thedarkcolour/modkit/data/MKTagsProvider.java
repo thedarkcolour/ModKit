@@ -154,7 +154,7 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         ENTITY_TYPE_KEY_GETTER = entityType -> entityType.builtInRegistryHolder().key();
         ITEM_KEY_GETTER = item -> item.builtInRegistryHolder().key();
         BLOCK_KEY_GETTER = block -> block.builtInRegistryHolder().key();
-        GAME_EVENT_KEY_GETTER = gameEvent -> gameEvent.builtInRegistryHolder().key();
+        GAME_EVENT_KEY_GETTER = gameEvent -> BuiltInRegistries.GAME_EVENT.getResourceKey(gameEvent).get();
         FLUID_KEY_GETTER = fluid -> fluid.builtInRegistryHolder().key();
     }
 }

@@ -33,11 +33,11 @@ class Recipes {
         recipes.storage3x3(TestMod.ORANGE_BLOCK.get(), TestMod.ORANGE.get());
 
         recipes.conditional("apples_if_true", List.of(new ItemExistsCondition("minecraft", "bundle")), appender -> {
-            recipes.grid2x2(Items.APPLE, MKRecipeProvider.ingredient(Items.DIRT));
+            recipes.grid2x2(RecipeCategory.FOOD, Items.APPLE, MKRecipeProvider.ingredient(Items.DIRT));
         });
 
         // a recipe with 8 cobblestone and 1 black dye to give blackstone
-        recipes.shapelessCrafting(RecipeCategory.BUILDING_BLOCKS, Items.BLACKSTONE, 8, ObjectIntPair.of(Tags.Items.COBBLESTONE, 8), Items.BLACK_DYE);
+        recipes.shapelessCrafting(RecipeCategory.BUILDING_BLOCKS, Items.BLACKSTONE, 8, ObjectIntPair.of(Tags.Items.COBBLESTONES, 8), Items.BLACK_DYE);
 
         recipes.woodenDoor(Items.IRON_DOOR, Items.IRON_BLOCK);
         recipes.slab(Items.CACTUS, Items.RED_CANDLE);

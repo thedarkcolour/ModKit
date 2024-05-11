@@ -18,13 +18,13 @@ package thedarkcolour.modkit.item;
 
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import thedarkcolour.modkit.ModKit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -44,20 +44,19 @@ public class CloneWandItem extends AbstractFillWand {
     @Override
     protected void handleUse(Level level, ItemStack stack, BlockPos pos, Player player) {
         if (player.isShiftKeyDown()) {
-            var startPosNbt = stack.getTagElement("StartPos");
-            if (startPosNbt == null) {
+            var startPos = stack.get(ModKit.START_POS_COMPONENT.get());
+            if (startPos == null) {
                 saveStartPos(stack, pos, player);
             } else {
                 var builder = ImmutableMap.<BlockPos, BlockState>builder();
-                var start = NbtUtils.readBlockPos(startPosNbt);
 
-                for (var mutable : BlockPos.betweenClosed(start, pos)) {
-                    builder.put(mutable.subtract(start), level.getBlockState(mutable));
+                for (var mutable : BlockPos.betweenClosed(startPos, pos)) {
+                    builder.put(mutable.subtract(startPos), level.getBlockState(mutable));
                 }
 
                 structureMap.put(player, builder.build());
-                player.displayClientMessage(Component.literal(String.format("Saved blocks from (%d %d %d) to (%d %d %d)", start.getX(), start.getY(), start.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
-                stack.removeTagKey("StartPos");
+                player.displayClientMessage(Component.literal(String.format("Saved blocks from (%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
+                stack.remove(ModKit.START_POS_COMPONENT.get());
             }
         } else {
             if (!structureMap.containsKey(player)) return;

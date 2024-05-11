@@ -17,18 +17,24 @@
 package thedarkcolour.modkit;
 
 import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.slf4j.Logger;
@@ -46,12 +52,16 @@ public class ModKit {
 
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ID);
     private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ID);
+    private static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(ID);
 
     public static final DeferredItem<Item> FILL_WAND = ITEMS.register("fill_wand", () -> new FillWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredItem<Item> CLEAR_WAND = ITEMS.register("clear_wand", () -> new ClearWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final DeferredItem<Item> DISTANCE_WAND = ITEMS.register("distance_wand", () -> new DistanceWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
     public static final DeferredItem<Item> CLONE_WAND = ITEMS.register("clone_wand", () -> new CloneWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)));
     public static final DeferredItem<Item> KILL_WAND = ITEMS.register("kill_wand", () -> new KillWand(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockPos>> START_POS_COMPONENT = DATA_COMPONENTS.registerComponentType("start_pos", builder -> builder.persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC));
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockState>> FILL_BLOCK_COMPONENT = DATA_COMPONENTS.registerComponentType("fill_block", builder -> builder.persistent(BlockState.CODEC).networkSynchronized(ByteBufCodecs.idMapper(Block.BLOCK_STATE_REGISTRY)));
 
     static {
         CREATIVE_TABS.register(ID, () -> Util.make(new CreativeModeTab.Builder(CreativeModeTab.Row.TOP, 0), builder -> {
@@ -71,6 +81,7 @@ public class ModKit {
     public ModKit(IEventBus modBus) {
         ITEMS.register(modBus);
         CREATIVE_TABS.register(modBus);
+        DATA_COMPONENTS.register(modBus);
         modBus.addListener(ModKit::postRegistry);
         modBus.addListener(ModKitDataGen::gatherData);
         modBus.addListener(EventPriority.LOWEST, ModKit::postCreativeTabs);
