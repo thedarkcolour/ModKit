@@ -23,8 +23,8 @@ import net.minecraft.world.item.context.UseOnContext;
 import thedarkcolour.modkit.ModKit;
 
 public class DistanceWandItem extends Item {
-    public DistanceWandItem(Properties pProperties) {
-        super(pProperties);
+    public DistanceWandItem(Properties properties) {
+        super(properties);
     }
 
     @Override

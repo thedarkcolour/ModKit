@@ -43,8 +43,8 @@ import java.util.Map;
 public abstract class AbstractFillWand extends Item {
     protected final Map<Player, Map<BlockPos, BlockState>> undoMap = new HashMap<>();
 
-    public AbstractFillWand(Properties pProperties) {
-        super(pProperties);
+    public AbstractFillWand(Properties properties) {
+        super(properties);
     }
 
     protected abstract MutableComponent getFillMessage();
@@ -78,38 +78,38 @@ public abstract class AbstractFillWand extends Item {
     }
 
     @Override
-    public int getUseDuration(ItemStack pStack) {
+    public int getUseDuration(ItemStack stack, LivingEntity living) {
         return 40;
     }
 
     @Override
-    public UseAnim getUseAnimation(ItemStack pStack) {
+    public UseAnim getUseAnimation(ItemStack stack) {
         return UseAnim.BOW;
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand hand) {
-        if (!pLevel.isClientSide) {
-            if (pPlayer.isShiftKeyDown()) {
-                pPlayer.getItemInHand(hand).remove(ModKit.START_POS_COMPONENT.get());
-                pPlayer.displayClientMessage(Component.literal("Cleared start position"), true);
-            } else if (undoMap.get(pPlayer) != null) {
-                pPlayer.displayClientMessage(Component.literal("Hold to undo"), true);
-                pPlayer.startUsingItem(hand);
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        if (!level.isClientSide) {
+            if (player.isShiftKeyDown()) {
+                player.getItemInHand(hand).remove(ModKit.START_POS_COMPONENT.get());
+                player.displayClientMessage(Component.literal("Cleared start position"), true);
+            } else if (undoMap.get(player) != null) {
+                player.displayClientMessage(Component.literal("Hold to undo"), true);
+                player.startUsingItem(hand);
             }
         }
 
-        return InteractionResultHolder.pass(pPlayer.getItemInHand(hand));
+        return InteractionResultHolder.pass(player.getItemInHand(hand));
     }
 
     @Override
-    public InteractionResult useOn(UseOnContext context) {
-        var level = context.getLevel();
+    public InteractionResult useOn(UseOnContext ctx) {
+        var level = ctx.getLevel();
 
         if (!level.isClientSide) {
-            var stack = context.getItemInHand();
-            var pos = context.getClickedPos();
-            var player = context.getPlayer();
+            var stack = ctx.getItemInHand();
+            var pos = ctx.getClickedPos();
+            var player = ctx.getPlayer();
 
             if (player != null) {
                 handleUse(level, stack, pos, player);

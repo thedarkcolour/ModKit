@@ -26,8 +26,8 @@ import net.minecraft.world.level.block.Blocks;
 import thedarkcolour.modkit.ModKit;
 
 public class ClearWandItem extends AbstractFillWand {
-    public ClearWandItem(Properties pProperties) {
-        super(pProperties);
+    public ClearWandItem(Properties properties) {
+        super(properties);
     }
 
     @Override

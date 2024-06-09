@@ -42,8 +42,8 @@ public class KillWand extends Item {
         target.setHealth(0);
 
         // no children
-        if (target instanceof Slime) {
-            ((Slime) target).setSize(0, false);
+        if (target instanceof Slime slime) {
+            slime.setSize(0, false);
         }
         return true;
     }

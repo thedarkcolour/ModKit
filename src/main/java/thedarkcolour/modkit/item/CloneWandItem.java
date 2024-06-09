@@ -32,8 +32,8 @@ import java.util.Map;
 public class CloneWandItem extends AbstractFillWand {
     private final Map<Player, ImmutableMap<BlockPos, BlockState>> structureMap = new HashMap<>();
 
-    public CloneWandItem(Properties pProperties) {
-        super(pProperties);
+    public CloneWandItem(Properties properties) {
+        super(properties);
     }
 
     @Override
