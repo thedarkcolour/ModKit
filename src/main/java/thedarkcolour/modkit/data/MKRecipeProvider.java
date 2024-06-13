@@ -85,7 +85,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void conditional(String recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
-        conditional(new ResourceLocation(this.modid, recipeId), conditions, addRecipes);
+        conditional(ResourceLocation.fromNamespaceAndPath(this.modid, recipeId), conditions, addRecipes);
     }
 
     /**
@@ -189,12 +189,12 @@ public class MKRecipeProvider extends RecipeProvider {
     public ResourceLocation createRecipeId(@Nullable String recipeId, ItemLike result) {
         if (recipeId != null) {
             if (recipeId.contains(":")) {
-                return new ResourceLocation(recipeId);
+                return ResourceLocation.parse(recipeId);
             } else {
-                return new ResourceLocation(this.modid, recipeId);
+                return ResourceLocation.fromNamespaceAndPath(this.modid, recipeId);
             }
         } else {
-            return new ResourceLocation(this.modid, MKRecipeProvider.path(result));
+            return ResourceLocation.fromNamespaceAndPath(this.modid, MKRecipeProvider.path(result));
         }
     }
 
@@ -249,29 +249,32 @@ public class MKRecipeProvider extends RecipeProvider {
                     Preconditions.checkArgument(ingredient instanceof ItemLike);
                 }
 
-                if (ingredient instanceof ItemLike itemLike) {
-                    shapeless.requires(itemLike);
+				switch (ingredient) {
+					case ItemLike itemLike -> {
+						shapeless.requires(itemLike);
 
-                    if (noCriterion) {
-                        MKRecipeProvider.unlockedByHaving(shapeless, itemLike);
-                        noCriterion = false;
-                    }
-                } else if (ingredient instanceof TagKey tagKey) {
-                    shapeless.requires(tagKey);
+						if (noCriterion) {
+							MKRecipeProvider.unlockedByHaving(shapeless, itemLike);
+							noCriterion = false;
+						}
+					}
+					case TagKey tagKey -> {
+						shapeless.requires(tagKey);
 
-                    if (noCriterion) {
-                        MKRecipeProvider.unlockedByHaving(shapeless, tagKey);
-                        noCriterion = false;
-                    }
-                } else if (ingredient instanceof Ingredient ing) {
-                    shapeless.requires(ing);
+						if (noCriterion) {
+							MKRecipeProvider.unlockedByHaving(shapeless, tagKey);
+							noCriterion = false;
+						}
+					}
+					case Ingredient ing -> {
+						shapeless.requires(ing);
 
-                    if (noCriterion) {
-                        noCriterion = !MKRecipeProvider.unlockedByHaving(shapeless, ing);
-                    }
-                } else {
-                    throw MKRecipeProvider.nonIngredientArgument(ingredient);
-                }
+						if (noCriterion) {
+							noCriterion = !MKRecipeProvider.unlockedByHaving(shapeless, ing);
+						}
+					}
+					default -> throw MKRecipeProvider.nonIngredientArgument(ingredient);
+				}
             }
 
             if (noCriterion && isMissingCriterion(shapeless)) {
@@ -741,15 +744,12 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     private static <T> T unlockedBy(T recipeBuilder, Criterion<?> criterion) {
-        if (recipeBuilder instanceof RecipeBuilder b) {
-            b.unlockedBy("has_item", criterion);
-        } else if (recipeBuilder instanceof SmithingTrimRecipeBuilder b) {
-            b.unlocks("has_item", criterion);
-        } else if (recipeBuilder instanceof SmithingTransformRecipeBuilder b) {
-            b.unlocks("has_item", criterion);
-        } else {
-            throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
-        }
+		switch (recipeBuilder) {
+			case RecipeBuilder b -> b.unlockedBy("has_item", criterion);
+			case SmithingTrimRecipeBuilder b -> b.unlocks("has_item", criterion);
+			case SmithingTransformRecipeBuilder b -> b.unlocks("has_item", criterion);
+			default -> throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
+		}
 
         return recipeBuilder;
     }
@@ -807,19 +807,15 @@ public class MKRecipeProvider extends RecipeProvider {
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static Ingredient ingredient(Object... values) {
-        return Ingredient.fromValues(Arrays.stream(values).map(value -> {
-            if (value instanceof Ingredient.Value ingredientValue) {
-                return ingredientValue;
-            } else if (value instanceof TagKey itemTag && itemTag.registry().equals(Registries.ITEM)) {
-                return new Ingredient.TagValue(itemTag);
-            } else if (value instanceof ItemLike itemLike) {
-                return new Ingredient.ItemValue(new ItemStack(itemLike));
-            } else if (value instanceof Supplier<?> supplier && supplier.get() instanceof ItemLike itemLike) {
-                return new Ingredient.ItemValue(new ItemStack(itemLike));
-            } else {
-                throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass() + " is not subclass of Ingredient.Value, TagKey<Item>, ItemLike, or Supplier<? extends ItemLike>");
-            }
-        }));
+        return Ingredient.fromValues(Arrays.stream(values).map(value -> switch (value) {
+			case Ingredient.Value ingredientValue -> ingredientValue;
+			case TagKey itemTag when itemTag.registry().equals(Registries.ITEM) -> new Ingredient.TagValue(itemTag);
+			case ItemLike itemLike -> new Ingredient.ItemValue(new ItemStack(itemLike));
+			case Supplier<?> supplier when supplier.get() instanceof ItemLike itemLike ->
+					new Ingredient.ItemValue(new ItemStack(itemLike));
+			case null, default ->
+					throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass() + " is not subclass of Ingredient.Value, TagKey<Item>, ItemLike, or Supplier<? extends ItemLike>");
+		}));
     }
 
     private static IllegalArgumentException nonIngredientArgument(Object item) {

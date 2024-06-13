@@ -105,7 +105,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
 
         return getBuilder(path)
                 .parent(new ModelFile.UncheckedModelFile(parentName)) // handheld
-                .texture("layer0", new ResourceLocation(itemId.getNamespace(), "item/" + path));
+                .texture("layer0", ResourceLocation.fromNamespaceAndPath(itemId.getNamespace(), "item/" + path));
     }
 
     /**
@@ -114,12 +114,12 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     public SafeItemModelBuilder generic3d(ItemLike item) {
         ResourceLocation id = itemId(item.asItem());
         String path = id.getPath();
-        return withExistingParent(path, new ResourceLocation(id.getNamespace(), "block/" + path));
+        return withExistingParent(path, ResourceLocation.fromNamespaceAndPath(id.getNamespace(), "block/" + path));
     }
 
     public SafeItemModelBuilder generic3d(ResourceLocation id) {
         String path = id.getPath();
-        return withExistingParent(path, new ResourceLocation(id.getNamespace(), "block/" + path));
+        return withExistingParent(path, ResourceLocation.fromNamespaceAndPath(id.getNamespace(), "block/" + path));
     }
 
     private SafeItemModelBuilder spawnEgg(ItemLike item) {
@@ -144,7 +144,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
         if (rl.getPath().contains("/")) {
             return rl;
         }
-        return new ResourceLocation(rl.getNamespace(), folder + "/" + rl.getPath());
+        return ResourceLocation.fromNamespaceAndPath(rl.getNamespace(), folder + "/" + rl.getPath());
     }
 
     public ResourceLocation itemId(ItemLike item) {

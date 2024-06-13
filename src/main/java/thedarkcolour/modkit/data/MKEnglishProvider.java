@@ -22,6 +22,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
@@ -53,6 +54,7 @@ import java.util.function.Function;
  */
 @SuppressWarnings({"unchecked", "deprecation", "unused"})
 public class MKEnglishProvider extends LanguageProvider {
+    private static final String UNKNOWN_TRANSLATION_KEY = "Tried to add translation \"{}\" for object {}, but was unable to determine translation key";
     private static final Field FIELD_DATA;
 
     static {
@@ -70,7 +72,7 @@ public class MKEnglishProvider extends LanguageProvider {
     @Nullable
     private final Consumer<MKEnglishProvider> addNames;
     private final Map<String, String> data;
-    private final Map<Class<?>, Function<Object, String>> registryObjectHandlers;
+    private final Map<Class<?>, Function<Object, @Nullable String>> registryObjectHandlers;
     private final List<ResourceKey<? extends Registry<?>>> autoTranslatedRegistries;
 
     @ApiStatus.Internal
@@ -93,7 +95,7 @@ public class MKEnglishProvider extends LanguageProvider {
         addTranslationHandler(Item.class, Item::getDescriptionId);
         addTranslationHandler(EntityType.class, EntityType::getDescriptionId);
         addTranslationHandler(MobEffect.class, MobEffect::getDescriptionId);
-        addTranslationHandler(Enchantment.class, Enchantment::getDescriptionId);
+        addTranslationHandler(Enchantment.class, MKEnglishProvider::getEnchantmentDescriptionId);
         addTranslationHandler(ItemStack.class, ItemStack::getDescriptionId);
         addTranslationHandler(FluidType.class, FluidType::getDescriptionId);
 
@@ -122,9 +124,13 @@ public class MKEnglishProvider extends LanguageProvider {
                         String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                         String key = getTranslationKey(obj);
 
-                        if (!this.data.containsKey(key)) {
-                            add(key, name);
-                            i.increment();
+                        if (key != null) {
+                            if (!this.data.containsKey(key)) {
+                                add(key, name);
+                                i.increment();
+                            }
+                        } else {
+                            this.logger.warn(UNKNOWN_TRANSLATION_KEY, name, obj);
                         }
                     });
                 } catch (IllegalArgumentException e) {
@@ -148,7 +154,7 @@ public class MKEnglishProvider extends LanguageProvider {
     public void add(String key, String value) {
         String old = this.data.put(key, value);
         if (old != null && !old.equals(value)) {
-            this.logger.info("Overridden/duplicate translation key '" + key + "' (old: '" + old + "' new: '" + value + "')");
+            this.logger.info("Overridden/duplicate translation key \"{}\" (old: \"{}\" new: \"{}\")", key, old, value);
         }
     }
 
@@ -185,13 +191,19 @@ public class MKEnglishProvider extends LanguageProvider {
     }
 
     public void add(Object key, String name) {
-        add(getTranslationKey(key), name);
+        var translationKey = getTranslationKey(key);
+        if (translationKey != null) {
+            add(translationKey, name);
+        } else {
+            this.logger.warn(UNKNOWN_TRANSLATION_KEY, name, key);
+        }
     }
 
     public void addGeneric(Holder<?> key, String name) {
         add(key.value(), name);
     }
 
+    @Nullable
     public String getTranslationKey(Object object) {
         for (var entry : this.registryObjectHandlers.entrySet()) {
             if (entry.getKey().isInstance(object)) {
@@ -200,5 +212,14 @@ public class MKEnglishProvider extends LanguageProvider {
         }
 
         throw new IllegalArgumentException("Unsupported registry object type for translation keys");
+    }
+
+    @Nullable
+    public static String getEnchantmentDescriptionId(Enchantment enchantment) {
+        if (enchantment.description().getContents() instanceof TranslatableContents translatable) {
+            return translatable.getKey();
+        } else {
+            return null;
+        }
     }
 }

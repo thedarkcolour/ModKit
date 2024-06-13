@@ -48,20 +48,20 @@ public class SafeBlockModelProvider extends BlockModelProvider {
         if (loc.getPath().contains("/")) {
             return loc;
         }
-        return new ResourceLocation(loc.getNamespace(), folder + "/" + loc.getPath());
+        return ResourceLocation.fromNamespaceAndPath(loc.getNamespace(), folder + "/" + loc.getPath());
     }
 
     @Override
     public BlockModelBuilder getBuilder(String path) {
         Preconditions.checkNotNull(path, "Path must not be null");
-        ResourceLocation outputLoc = extendWithFolder(path.contains(":") ? new ResourceLocation(path) : new ResourceLocation(modid, path));
+        ResourceLocation outputLoc = extendWithFolder(path.contains(":") ? ResourceLocation.parse(path) : ResourceLocation.fromNamespaceAndPath(modid, path));
         this.existingFileHelper.trackGenerated(outputLoc, MODEL);
         return generatedModels.computeIfAbsent(outputLoc, loc -> new SafeBlockModelBuilder(loc, logger, existingFileHelper));
     }
 
     @Override
     public BlockModelBuilder nested() {
-        return new SafeBlockModelBuilder(new ResourceLocation("dummy:dummy"), logger, existingFileHelper);
+        return new SafeBlockModelBuilder(ResourceLocation.parse("dummy:dummy"), logger, existingFileHelper);
     }
 
     @Override

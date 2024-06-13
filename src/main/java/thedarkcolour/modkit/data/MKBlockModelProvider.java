@@ -32,7 +32,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import thedarkcolour.modkit.data.model.SafeBlockModelProvider;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
