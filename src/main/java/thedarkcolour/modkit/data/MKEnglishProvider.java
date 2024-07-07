@@ -116,30 +116,35 @@ public class MKEnglishProvider extends LanguageProvider {
 
         if (this.generateNames) {
             for (ResourceKey<? extends Registry<?>> registryKey : this.autoTranslatedRegistries) {
-                var registry = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registryKey);
-                MutableInt i = new MutableInt();
+                var optional = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registry(registryKey);
 
-                try {
-                    MKUtils.forModRegistry(registry, this.modid, (id, obj) -> {
-                        String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
-                        String key = getTranslationKey(obj);
+                if (optional.isPresent()) {
+                    MutableInt i = new MutableInt();
 
-                        if (key != null) {
-                            if (!this.data.containsKey(key)) {
-                                add(key, name);
-                                i.increment();
+                    try {
+                        MKUtils.forModRegistry(optional.get(), this.modid, (id, obj) -> {
+                            String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
+                            String key = getTranslationKey(obj);
+
+                            if (key != null) {
+                                if (!this.data.containsKey(key)) {
+                                    add(key, name);
+                                    i.increment();
+                                }
+                            } else {
+                                this.logger.warn(UNKNOWN_TRANSLATION_KEY, name, obj);
                             }
-                        } else {
-                            this.logger.warn(UNKNOWN_TRANSLATION_KEY, name, obj);
-                        }
-                    });
-                } catch (IllegalArgumentException e) {
-                    this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registryKey.location());
-                    continue;
-                }
+                        });
+                    } catch (IllegalArgumentException e) {
+                        this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registryKey.location());
+                        continue;
+                    }
 
-                if (i.intValue() > 0) {
-                    this.logger.info("Automatically generated {} names for mod {}'s entries in registry {}", i, this.modid, registryKey.location());
+                    if (i.intValue() > 0) {
+                        this.logger.info("Automatically generated {} names for mod {}'s entries in registry {}", i, this.modid, registryKey.location());
+                    }
+                } else {
+                    this.logger.error("Failed to fetch registry {} for translation. You will have to translate these entries manually", registryKey.location());
                 }
             }
         }
