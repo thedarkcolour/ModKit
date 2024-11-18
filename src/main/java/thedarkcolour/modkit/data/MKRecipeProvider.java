@@ -25,14 +25,7 @@ import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.PackOutput;
-import net.minecraft.data.recipes.FinishedRecipe;
-import net.minecraft.data.recipes.RecipeBuilder;
-import net.minecraft.data.recipes.RecipeCategory;
-import net.minecraft.data.recipes.RecipeProvider;
-import net.minecraft.data.recipes.ShapelessRecipeBuilder;
-import net.minecraft.data.recipes.SimpleCookingRecipeBuilder;
-import net.minecraft.data.recipes.SmithingTransformRecipeBuilder;
-import net.minecraft.data.recipes.SmithingTrimRecipeBuilder;
+import net.minecraft.data.recipes.*;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -207,13 +200,68 @@ public class MKRecipeProvider extends RecipeProvider {
         }
     }
 
+    /**
+     * Simplest overload which accepts a category, result, and count.
+     */
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
         shapelessCrafting(category, new ItemStack(result, resultCount, null), ingredients);
     }
 
+    /**
+     * Overload that accepts a group.
+     */
+    public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
+        shapelessCrafting(category, new ItemStack(result, resultCount, null), ingredients);
+    }
 
+    /**
+     * Overload that accepts an ID path.
+     */
+    public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+        shapelessCrafting(new ResourceLocation(this.modid, path), category, result, resultCount, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ID.
+     */
+    public void shapelessCrafting(ResourceLocation id, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+        shapelessCrafting(id, category, new ItemStack(result, resultCount, null), null, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ItemStack instead of a result and count.
+     */
     public void shapelessCrafting(RecipeCategory category, ItemStack result, Object... ingredients) {
-        shapelessCrafting(category, result, null, ingredients);
+        shapelessCrafting(category, result, null, null, ingredients);
+    }
+
+    /**
+     * Overload that accepts a group and an ItemStack instead of a result and count.
+     */
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable String group, Object... ingredients) {
+        shapelessCrafting(category, result, group, null, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ID path and recipe group.
+     */
+    public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
+        shapelessCrafting(new ResourceLocation(this.modid, path), category, result, resultCount, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ID and an ItemStack instead of a result and count.
+     */
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
+        shapelessCrafting(null, category, result, unlockedBy, ingredients);
+    }
+
+    public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
+        shapelessCrafting(id, category, result, null, unlockedBy, ingredients);
+    }
+
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
+        shapelessCrafting(null, category, result, group, unlockedBy, ingredients);
     }
 
     /**
@@ -223,9 +271,16 @@ public class MKRecipeProvider extends RecipeProvider {
      * Additionally, it is possible to use {@link ObjectIntPair} or {@link IntObjectPair} containing one of the above
      * types to specify that the ingredient should appear multiple times (specified by the integer of the pair). This
      * helps avoid repetition of the same ingredient several times in the ingredients list.
+     * <p>
+     * There are many overloads that accept different variations and combinations of these arguments in the same order.
+     * Generally, recipes start with an optional ID (string or ResourceLocation), a category, a result (ItemStack or
+     * pair of item + count), then an optional group name, an optional unlock criterion.
+     * The last argument is always the list of ingredients.
      *
+     * @param id          The ID to use for this recipe. If {@code null}, then one is chosen according to {@link RecipeBuilder#getDefaultRecipeId}.
      * @param category    The recipe category for showing in the green recipe book
      * @param result      The resulting item of this recipe (NBT and count are included in the generated recipe)
+     * @param group       A nullable group name that this recipe should be displayed with in the recipe book.
      * @param unlockedBy  A (nullable) pair of criterion name and criterion instance for unlocking the recipe.
      *                    In most cases it is easier to leave this null, but it may be desirable to pick a specific
      *                    criterion or required if ModKit cannot determine a criterion automatically.
@@ -234,7 +289,7 @@ public class MKRecipeProvider extends RecipeProvider {
      *                                  or if {@code ingredients} exceeds 9 ingredients, including any expanded pairs.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
+    public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, CriterionTriggerInstance> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(writer);
 
         NbtShapelessRecipeBuilder shapeless = new NbtShapelessRecipeBuilder(category, result.getItem(), result.getCount(), result.getTag());
@@ -363,23 +418,23 @@ public class MKRecipeProvider extends RecipeProvider {
     @ApiStatus.ScheduledForRemoval(inVersion = "1.21")
     @Deprecated(forRemoval = true)
     public void grid2x2(ItemLike result, Ingredient ingredient) {
-        this.grid2x2(RecipeCategory.MISC, result, ingredient);
+        grid2x2(RecipeCategory.MISC, result, ingredient);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, Ingredient ingredient) {
-        this.grid2x2(category, result, 1, ingredient);
+        grid2x2(category, result, 1, ingredient);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, ItemLike ingredient) {
-        this.grid2x2(category, result, 1, ingredient);
+        grid2x2(category, result, 1, ingredient);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient) {
-        this.grid2x2(category, result, resultCount, ingredient, null);
+        grid2x2(category, result, resultCount, ingredient, null);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, ItemLike ingredient) {
-        this.grid2x2(category, result, resultCount, Ingredient.of(ingredient));
+        grid2x2(category, result, resultCount, Ingredient.of(ingredient));
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
