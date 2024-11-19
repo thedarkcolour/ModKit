@@ -33,6 +33,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.ItemLike;
@@ -540,6 +541,26 @@ public class MKRecipeProvider extends RecipeProvider {
         grid3x2(RecipeCategory.REDSTONE, result, 2, ingredient, "wooden_trapdoor");
     }
 
+    public void woodenFence(ItemLike fence, ItemLike planks) {
+        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, fence, 3, recipe -> {
+            recipe.define('#', Tags.Items.RODS_WOODEN);
+            recipe.define('W', planks);
+            recipe.pattern("W#W");
+            recipe.pattern("W#W");
+            recipe.group("wooden_fence");
+        });
+    }
+
+    public void woodenFenceGate(ItemLike fenceGate, ItemLike planks) {
+        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, fenceGate, recipe -> {
+            recipe.define('#', Tags.Items.RODS_WOODEN);
+            recipe.define('W', planks);
+            recipe.pattern("#W#");
+            recipe.pattern("#W#");
+            recipe.group("wooden_fence_gate");
+        });
+    }
+
     public void stairs(ItemLike result, ItemLike input) {
         stairs(result, input, null);
     }
@@ -592,6 +613,22 @@ public class MKRecipeProvider extends RecipeProvider {
 
     public void woodenSlab(ItemLike result, ItemLike planks) {
         slab(result, planks, "wooden_slab");
+    }
+
+    public void special(String id, Supplier<? extends RecipeSerializer<? extends CraftingRecipe>> serializer) {
+        special(new ResourceLocation(this.modid, id), serializer.get());
+    }
+
+    /**
+     * Used for special recipes like firework stars or butterfly breeding.
+     *
+     * @param id         The ID of this recipe.
+     * @param serializer The serializer for reading this recipe from a datapack.
+     */
+    public void special(ResourceLocation id, RecipeSerializer<? extends CraftingRecipe> serializer) {
+        Preconditions.checkNotNull(this.writer);
+
+        SpecialRecipeBuilder.special(serializer).save(this.writer, id.toString());
     }
 
     public void foodCooking(ItemLike input, ItemLike result, float experience) {
