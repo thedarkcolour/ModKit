@@ -37,6 +37,7 @@ public final class DataGen {
         helper.createRecipes(Recipes::addRecipes);
         helper.createTags(Registries.BLOCK, ModTags::addBlockTags);
         helper.createTags(Registries.ITEM, ModTags::addItemTags);
+        helper.createDamageTypes(DamageTypes::addTypes);
     }
 
     // Do not load this class outside of data gen

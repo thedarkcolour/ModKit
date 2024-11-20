@@ -66,6 +66,8 @@ public class DataHelper {
     protected MKRecipeProvider recipes;
     @Nullable
     protected BiFunction<MKEnglishProvider, PackOutput, List<DataProvider>> addModonomiconBooks;
+    @Nullable
+    private MKDamageTypeProvider damageTypes;
 
     public DataHelper(String modid, GatherDataEvent event) {
         this.modid = modid;
@@ -185,6 +187,20 @@ public class DataHelper {
     }
 
     /**
+     * Generate damage source types.
+     *
+     * @param addTypes A function that takes in a damage type provider to add new damage types.
+     */
+    public MKDamageTypeProvider createDamageTypes(Consumer<MKDamageTypeProvider> addTypes) {
+        this.checkNotCreated(this.damageTypes, "Damage Types");
+
+        this.damageTypes = new MKDamageTypeProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), this.modid, addTypes);
+        this.event.getGenerator().addProvider(this.event.includeServer(), this.damageTypes);
+
+        return this.damageTypes;
+    }
+
+    /**
      * Generates tags for a specific registry. For item tags, you may use the copy() method
      * to copy equivalent block tags into your item tags.
      *
@@ -202,6 +218,7 @@ public class DataHelper {
 
         return provider;
     }
+
     /**
      * Alternative method which omits the often unused HolderLookup.Provider parameter.
      *

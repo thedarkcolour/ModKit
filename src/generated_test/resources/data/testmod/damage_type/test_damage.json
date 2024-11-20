@@ -1,0 +1,7 @@
+{
+  "death_message_type": "intentional_game_design",
+  "effects": "freezing",
+  "exhaustion": 0.5,
+  "message_id": "testmod.test_damage",
+  "scaling": "never"
+}
