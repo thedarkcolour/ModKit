@@ -17,6 +17,8 @@
 package thedarkcolour.modkit.data;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
@@ -32,10 +34,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.AbstractCookingRecipe;
-import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.crafting.ConditionalRecipe;
@@ -47,10 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.NbtShapedRecipeBuilder;
 import thedarkcolour.modkit.data.recipe.NbtShapelessRecipeBuilder;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -153,8 +149,7 @@ public class MKRecipeProvider extends RecipeProvider {
 
     /**
      * Generates a shaped recipe with the recipe layout defined by the {@code recipe} Consumer.
-     * Will make a best-guess attempt for an unlockedBy criterion, but manually setting one
-     * in the Consumer may be preferable or required.
+     * Will make a best-guess attempt for an unlockedBy criterion, using the first tag/item declared in the key.
      *
      * @param recipeId    Recipe id to use when generating the recipe, or null for the default name.
      * @param category    Recipe category for displaying in the green recipe book
@@ -766,17 +761,28 @@ public class MKRecipeProvider extends RecipeProvider {
      * @return True if a criterion was added to the recipe
      */
     public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.getItems().length == 1) {
-            if (ingredient.toJson() instanceof JsonObject ingredientObj) {
-                if (ingredientObj.has("item")) {
-                    ItemStack stack = ingredient.getItems()[0];
-                    MKRecipeProvider.unlockedByHaving(builder, stack.getItem());
-                    return true;
-                } else if (ingredientObj.has("tag")) {
-                    TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(ingredientObj.get("tag").getAsString()));
-                    MKRecipeProvider.unlockedByHaving(builder, tag);
-                    return true;
+        if (ingredient.getItems().length > 1) {
+            if (ingredient.toJson() instanceof JsonArray arrayObj) {
+                LinkedHashSet<ItemLike> items = new LinkedHashSet<>();
+                LinkedHashSet<TagKey<Item>> tags = new LinkedHashSet<>();
+
+                for (JsonElement element : arrayObj) {
+                    if (element instanceof JsonObject jsonObj) {
+                        if (jsonObj.has("tag")) {
+                            tags.add(TagKey.create(Registries.ITEM, new ResourceLocation(jsonObj.get("tag").getAsString())));
+                        } else if (jsonObj.has("item")) {
+                            items.add(ShapedRecipe.itemFromJson(jsonObj));
+                        }
+                    }
                 }
+
+                if (tags.isEmpty()) {
+                    MKRecipeProvider.unlockedByHaving(builder, items.iterator().next());
+                } else {
+                    MKRecipeProvider.unlockedByHaving(builder, tags.iterator().next());
+                }
+
+                return true;
             }
         }
 

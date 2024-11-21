@@ -18,8 +18,6 @@ package thedarkcolour.modkit.data.recipe;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import it.unimi.dsi.fastutil.chars.Char2ObjectMap;
-import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.chars.CharOpenHashSet;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementRewards;
@@ -39,13 +37,14 @@ import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.MKRecipeProvider;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuilder> {
     private final List<String> rows = new ArrayList<>();
-    private final Char2ObjectMap<Ingredient> key = new Char2ObjectOpenHashMap<>(9);
+    private final LinkedHashMap<Character, Ingredient> key = new LinkedHashMap<>(9);
     private boolean showNotification = true;
 
     public NbtShapedRecipeBuilder(RecipeCategory category, ItemLike result, int resultCount, @Nullable CompoundTag resultNbt) {
@@ -165,12 +164,12 @@ public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuild
         @Nullable
         private final String group;
         private final List<String> pattern;
-        private final Char2ObjectMap<Ingredient> key;
+        private final LinkedHashMap<Character, Ingredient> key;
         private final Advancement.Builder advancement;
         private final ResourceLocation advancementId;
         private final boolean showNotification;
 
-        public Result(ResourceLocation id, RecipeCategory category, Item result, int resultCount, @Nullable CompoundTag resultNbt, @Nullable String group, List<String> pattern, Char2ObjectMap<Ingredient> key, Advancement.Builder advancement, ResourceLocation advancementId, boolean showNotification) {
+        public Result(ResourceLocation id, RecipeCategory category, Item result, int resultCount, @Nullable CompoundTag resultNbt, @Nullable String group, List<String> pattern, LinkedHashMap<Character, Ingredient> key, Advancement.Builder advancement, ResourceLocation advancementId, boolean showNotification) {
             this.id = id;
             this.category = category;
             this.result = result;
@@ -201,8 +200,8 @@ public class NbtShapedRecipeBuilder extends NbtResultRecipe<NbtShapedRecipeBuild
             json.add("pattern", patternObj);
             JsonObject keyObj = new JsonObject();
 
-            for (var entry : key.char2ObjectEntrySet()) {
-                keyObj.add(String.valueOf(entry.getCharKey()), entry.getValue().toJson());
+            for (var entry : key.entrySet()) {
+                keyObj.add(String.valueOf(entry.getKey()), entry.getValue().toJson());
             }
 
             json.add("key", keyObj);
