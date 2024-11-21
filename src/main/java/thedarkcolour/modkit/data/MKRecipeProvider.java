@@ -290,6 +290,10 @@ public class MKRecipeProvider extends RecipeProvider {
 
         NbtShapelessRecipeBuilder shapeless = new NbtShapelessRecipeBuilder(category, result.getItem(), result.getCount(), result.getTag());
 
+        if (group != null) {
+            shapeless.group(group);
+        }
+
         if (unlockedBy != null) {
             shapeless.unlockedBy(unlockedBy.left(), unlockedBy.right());
         } else {
@@ -335,7 +339,11 @@ public class MKRecipeProvider extends RecipeProvider {
             }
         }
 
-        shapeless.save(writer);
+        if (id != null) {
+            shapeless.save(this.writer, id);
+        } else {
+            shapeless.save(this.writer);
+        }
     }
 
     // Helper method to handle ingredient-object pairs
