@@ -761,7 +761,19 @@ public class MKRecipeProvider extends RecipeProvider {
      * @return True if a criterion was added to the recipe
      */
     public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.getItems().length > 1) {
+        if (ingredient.getItems().length == 1) {
+            if (ingredient.toJson() instanceof JsonObject ingredientObj) {
+                if (ingredientObj.has("item")) {
+                    ItemStack stack = ingredient.getItems()[0];
+                    MKRecipeProvider.unlockedByHaving(builder, stack.getItem());
+                    return true;
+                } else if (ingredientObj.has("tag")) {
+                    TagKey<Item> tag = TagKey.create(Registries.ITEM, new ResourceLocation(ingredientObj.get("tag").getAsString()));
+                    MKRecipeProvider.unlockedByHaving(builder, tag);
+                    return true;
+                }
+            }
+        } else if (ingredient.getItems().length > 1) {
             if (ingredient.toJson() instanceof JsonArray arrayObj) {
                 LinkedHashSet<ItemLike> items = new LinkedHashSet<>();
                 LinkedHashSet<TagKey<Item>> tags = new LinkedHashSet<>();
