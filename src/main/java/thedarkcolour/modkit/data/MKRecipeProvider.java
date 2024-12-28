@@ -50,6 +50,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing;
 
@@ -125,6 +126,52 @@ public class MKRecipeProvider extends RecipeProvider {
         } finally {
             this.writer = realWriter;
         }
+    }
+
+    /**
+     * When you run into conflicting recipe names, put the conflicting recipe inside the runnable of this method and
+     * pass the desired name of the recipe as name.
+     * <p>
+     * Example:
+     * // one recipe that has the same name
+     * recipes.renameRecipes(oldName -> oldName.withSuffix("_from_block", newWriter -> {
+     *   // another recipe that has the same name
+     * });
+     *
+     * @param renaming The function responsible for renaming the recipes.
+     * @param runnable Add your recipes here. You must use the recipe writer passed here INSTEAD of the original recipe writer variable.
+     */
+    public void renameRecipes(UnaryOperator<ResourceLocation> renaming, Consumer<Consumer<FinishedRecipe>> runnable) {
+        pushWriter(finishedRecipe -> {
+            this.writer.accept(new FinishedRecipe() {
+                @Override
+                public void serializeRecipeData(JsonObject pJson) {
+                    finishedRecipe.serializeRecipeData(pJson);
+                }
+
+                @Override
+                public ResourceLocation getId() {
+                    return renaming.apply(finishedRecipe.getId());
+                }
+
+                @Override
+                public RecipeSerializer<?> getType() {
+                    return finishedRecipe.getType();
+                }
+
+                @Nullable
+                @Override
+                public JsonObject serializeAdvancement() {
+                    return finishedRecipe.serializeAdvancement();
+                }
+
+                @Nullable
+                @Override
+                public ResourceLocation getAdvancementId() {
+                    return finishedRecipe.getAdvancementId();
+                }
+            });
+        }, runnable);
     }
 
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<NbtShapedRecipeBuilder> recipe) {
