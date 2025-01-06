@@ -142,8 +142,10 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param runnable Add your recipes here. You must use the recipe writer passed here INSTEAD of the original recipe writer variable.
      */
     public void renameRecipes(UnaryOperator<ResourceLocation> renaming, Consumer<Consumer<FinishedRecipe>> runnable) {
+        Consumer<FinishedRecipe> oldWriter = this.writer;
+
         pushWriter(finishedRecipe -> {
-            this.writer.accept(new FinishedRecipe() {
+            oldWriter.accept(new FinishedRecipe() {
                 @Override
                 public void serializeRecipeData(JsonObject pJson) {
                     finishedRecipe.serializeRecipeData(pJson);
