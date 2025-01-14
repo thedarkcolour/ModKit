@@ -18,6 +18,7 @@ package thedarkcolour.modkit;
 
 import net.minecraftforge.data.event.GatherDataEvent;
 import thedarkcolour.modkit.data.DataHelper;
+import thedarkcolour.modkit.data.MKBlockModelProvider;
 import thedarkcolour.modkit.data.MKEnglishProvider;
 
 /**
@@ -29,11 +30,16 @@ final class ModKitDataGen {
         // Instead of manually adding data providers to the event, use the IDataHelper class
         var dataHelper = new DataHelper(ModKit.ID, event);
         dataHelper.createEnglish(true, ModKitDataGen::addNames);
-        dataHelper.createItemModels(false, true, false, null);
+        dataHelper.createItemModels(true, true, false, null);
+        dataHelper.createBlockModels(ModKitDataGen::addBlockModels);
     }
 
     // Although english generation gives appropriate names for most things, some are still done by hand
     private static void addNames(MKEnglishProvider english) {
         english.add("itemGroup.modkit", "ModKit");
+    }
+
+    private static void addBlockModels(MKBlockModelProvider models) {
+        models.simpleBlock(ModKit.INFINITE_POWER.get());
     }
 }

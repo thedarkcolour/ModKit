@@ -16,14 +16,20 @@
 
 package thedarkcolour.modkit;
 
+import java.util.Set;
+
 import net.minecraft.Util;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
@@ -34,6 +40,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import thedarkcolour.modkit.block.InfinitePowerBlock;
+import thedarkcolour.modkit.blockentity.InfinitePowerBlockEntity;
 import thedarkcolour.modkit.item.ClearWandItem;
 import thedarkcolour.modkit.item.CloneWandItem;
 import thedarkcolour.modkit.item.DistanceWandItem;
@@ -45,8 +53,14 @@ public class ModKit {
     public static final String ID = "modkit";
     public static final Logger LOGGER = LoggerFactory.getLogger(ID);
 
+    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, ID);
+    private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, ID);
     private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ID);
     private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ID);
+
+    public static final RegistryObject<Block> INFINITE_POWER = BLOCKS.register("infinite_power", InfinitePowerBlock::new);
+    public static final RegistryObject<BlockEntityType<?>> INFINITE_POWER_TYPE = BLOCK_ENTITIES.register("infinite_power", () -> new BlockEntityType<>(InfinitePowerBlockEntity::new, Set.of(INFINITE_POWER.get()), null));
+    public static final RegistryObject<BlockItem> INFINITE_POWER_ITEM = ITEMS.register("infinite_power", () -> new BlockItem(INFINITE_POWER.get(), new Item.Properties().rarity(Rarity.EPIC)));
 
     public static final RegistryObject<Item> FILL_WAND = ITEMS.register("fill_wand", () -> new FillWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final RegistryObject<Item> CLEAR_WAND = ITEMS.register("clear_wand", () -> new ClearWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
@@ -59,6 +73,7 @@ public class ModKit {
             builder.icon(() -> new ItemStack(CLONE_WAND.get()));
             builder.title(Component.translatable("itemGroup.modkit"));
             builder.displayItems((params, output) -> {
+                output.accept(INFINITE_POWER_ITEM.get());
                 output.accept(FILL_WAND.get());
                 output.accept(CLEAR_WAND.get());
                 output.accept(DISTANCE_WAND.get());
@@ -71,6 +86,8 @@ public class ModKit {
 
     public ModKit() {
         var modBus = FMLJavaModLoadingContext.get().getModEventBus();
+        BLOCKS.register(modBus);
+        BLOCK_ENTITIES.register(modBus);
         ITEMS.register(modBus);
         CREATIVE_TABS.register(modBus);
         modBus.addListener(ModKit::postRegistry);
