@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "modkit:block/infinite_power"
+    }
+  }
+}

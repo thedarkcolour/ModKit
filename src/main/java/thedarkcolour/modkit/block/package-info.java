@@ -14,7 +14,6 @@
  * copies or substantial portions of the Software.
  */
 
-@net.minecraft.MethodsReturnNonnullByDefault
-@net.minecraft.FieldsAreNonnullByDefault
 @javax.annotation.ParametersAreNonnullByDefault
-package thedarkcolour.modkit.data.model;
+@net.minecraft.MethodsReturnNonnullByDefault
+package thedarkcolour.modkit.block;

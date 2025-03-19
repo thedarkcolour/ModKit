@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 thedarkcolour
+ * Copyright (c) 2025 thedarkcolour
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,12 +66,23 @@ public class DataHelper {
     protected MKRecipeProvider recipes;
     @Nullable
     protected BiFunction<MKEnglishProvider, PackOutput, List<DataProvider>> addModonomiconBooks;
+    @Nullable
+    private MKDamageTypeProvider damageTypes;
 
     public DataHelper(String modid, GatherDataEvent event) {
         this.modid = modid;
         this.event = event;
         this.logger = LoggerFactory.getLogger(ModKit.ID + "/" + modid);
         this.tags = new HashMap<>();
+    }
+
+    public MKDamageTypeProvider createDamageTypes(Consumer<MKDamageTypeProvider> addTypes) {
+        this.checkNotCreated(this.damageTypes, "Damage Types");
+
+        this.damageTypes = new MKDamageTypeProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), this.modid, this.event.getLookupProvider(), addTypes);
+        this.event.getGenerator().addProvider(this.event.includeServer(), this.damageTypes);
+
+        return this.damageTypes;
     }
 
     /**
@@ -202,6 +213,7 @@ public class DataHelper {
 
         return provider;
     }
+
     /**
      * Alternative method which omits the often unused HolderLookup.Provider parameter.
      *

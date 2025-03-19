@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 thedarkcolour
+ * Copyright (c) 2025 thedarkcolour
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,43 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import thedarkcolour.modkit.item.ClearWandItem;
-import thedarkcolour.modkit.item.CloneWandItem;
-import thedarkcolour.modkit.item.DistanceWandItem;
-import thedarkcolour.modkit.item.FillWandItem;
-import thedarkcolour.modkit.item.KillWand;
+import thedarkcolour.modkit.block.InfinitePowerBlock;
+import thedarkcolour.modkit.blockentity.InfinitePowerBlockEntity;
+import thedarkcolour.modkit.item.*;
+
+import java.util.Set;
 
 @Mod(ModKit.ID)
 public class ModKit {
     public static final String ID = "modkit";
     public static final Logger LOGGER = LoggerFactory.getLogger(ID);
 
+    private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(ID);
+    private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ID);
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ID);
     private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ID);
-    private static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(ID);
+    private static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, ID);
+
+    public static final DeferredBlock<Block> INFINITE_POWER = BLOCKS.register("infinite_power", InfinitePowerBlock::new);
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<InfinitePowerBlockEntity>> INFINITE_POWER_TYPE = BLOCK_ENTITIES.register("infinite_power", () -> new BlockEntityType<>(InfinitePowerBlockEntity::new, Set.of(INFINITE_POWER.get()), null));
+    public static final DeferredItem<BlockItem> INFINITE_POWER_ITEM = ITEMS.register("infinite_power", () -> new BlockItem(INFINITE_POWER.get(), new Item.Properties().rarity(Rarity.EPIC)));
 
     public static final DeferredItem<Item> FILL_WAND = ITEMS.register("fill_wand", () -> new FillWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.RARE)));
     public static final DeferredItem<Item> CLEAR_WAND = ITEMS.register("clear_wand", () -> new ClearWandItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
@@ -68,6 +74,7 @@ public class ModKit {
             builder.icon(() -> new ItemStack(CLONE_WAND.get()));
             builder.title(Component.translatable("itemGroup.modkit"));
             builder.displayItems((params, output) -> {
+                output.accept(INFINITE_POWER_ITEM.get());
                 output.accept(FILL_WAND.get());
                 output.accept(CLEAR_WAND.get());
                 output.accept(DISTANCE_WAND.get());
@@ -80,11 +87,14 @@ public class ModKit {
 
     public ModKit(IEventBus modBus) {
         ITEMS.register(modBus);
+        BLOCKS.register(modBus);
+        BLOCK_ENTITIES.register(modBus);
         CREATIVE_TABS.register(modBus);
         DATA_COMPONENTS.register(modBus);
         modBus.addListener(ModKit::postRegistry);
         modBus.addListener(ModKitDataGen::gatherData);
         modBus.addListener(EventPriority.LOWEST, ModKit::postCreativeTabs);
+        modBus.addListener(ModKit::registerCapabilities);
     }
 
     private static void postRegistry(FMLLoadCompleteEvent event) {
@@ -98,7 +108,7 @@ public class ModKit {
         });
     }
 
-    /**
+    /** todo FIX
      * Triggers upon first opening the Creative Menu. Warns about registered items which do not
      * show in any creative tab, which means they will not show in JEI.
      */
@@ -119,5 +129,9 @@ public class ModKit {
                 ModKit.LOGGER.warn("Item '{}' is not found in any creative tabs (will not show in JEI!)", id);
             }));
         }
+    }
+
+    private static void registerCapabilities(RegisterCapabilitiesEvent event) {
+        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, INFINITE_POWER_TYPE.get(), (power, face) -> power);
     }
 }

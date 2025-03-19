@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2023 thedarkcolour
+ * Copyright (c) 2025 thedarkcolour
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,8 @@ import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.Criterion;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,28 +34,19 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.AbstractCookingRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.SmeltingRecipe;
+import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.common.conditions.ICondition;
 import net.neoforged.neoforge.registries.DeferredHolder;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.ItemDataMap;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing;
 
@@ -127,6 +120,36 @@ public class MKRecipeProvider extends RecipeProvider {
         }
     }
 
+    /**
+     * When you run into conflicting recipe names, put the conflicting recipe inside the runnable of this method and
+     * pass the desired name of the recipe as name.
+     * <p>
+     * Example:
+     * // one recipe that has the same name
+     * recipes.renameRecipes(oldName -> oldName.withSuffix("_from_block", newWriter -> {
+     * // another recipe that has the same name
+     * });
+     *
+     * @param renaming The function responsible for renaming the recipes.
+     * @param runnable Add your recipes here. You must use the recipe writer passed here INSTEAD of the original recipe writer variable.
+     */
+    public void renameRecipes(UnaryOperator<ResourceLocation> renaming, Consumer<RecipeOutput> runnable) {
+        Preconditions.checkNotNull(this.output);
+        RecipeOutput oldWriter = this.output;
+
+        pushRecipeOutput(new RecipeOutput() {
+            @Override
+            public Advancement.Builder advancement() {
+                return oldWriter.advancement();
+            }
+
+            @Override
+            public void accept(ResourceLocation id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+                oldWriter.accept(renaming.apply(id), recipe, advancement, conditions);
+            }
+        }, runnable);
+    }
+
     public void shapedCrafting(String recipeId, RecipeCategory category, ItemLike result, Consumer<ShapedRecipeBuilder> recipe) {
         shapedCrafting(recipeId, category, result, 1, recipe);
     }
@@ -198,16 +221,75 @@ public class MKRecipeProvider extends RecipeProvider {
         }
     }
 
+    /**
+     * Simplest overload which accepts a category, result, and count.
+     */
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
         shapelessCrafting(category, new ItemStack(result, resultCount), ingredients);
     }
 
+    /**
+     * Overload that accepts a group.
+     */
+    public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
+        shapelessCrafting(category, new ItemStack(result, resultCount), ingredients);
+    }
+
+    /**
+     * Overload that accepts an ID path.
+     */
+    public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+        shapelessCrafting(ResourceLocation.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
+    }
+
+    /**
+     * Overload that accepts an item data map, which is like the old item NBT tag.
+     */
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Object... ingredients) {
         shapelessCrafting(category, newItemStack(result, resultCount, resultData), ingredients);
     }
 
+    /**
+     * Overload that accepts an ID.
+     */
+    public void shapelessCrafting(ResourceLocation id, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+        shapelessCrafting(id, category, new ItemStack(result, resultCount), null, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ItemStack instead of a result and count.
+     */
     public void shapelessCrafting(RecipeCategory category, ItemStack result, Object... ingredients) {
-        shapelessCrafting(category, result, null, ingredients);
+        shapelessCrafting(category, result, null, null, ingredients);
+    }
+
+    /**
+     * Overload that accepts a group and an ItemStack instead of a result and count.
+     */
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable String group, Object... ingredients) {
+        shapelessCrafting(category, result, group, null, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ID path and recipe group.
+     */
+    public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
+        shapelessCrafting(ResourceLocation.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
+    }
+
+    /**
+     * Overload that accepts an ID and an ItemStack instead of a result and count.
+     */
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+        shapelessCrafting(null, category, result, unlockedBy, ingredients);
+    }
+
+    public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+        shapelessCrafting(id, category, result, null, unlockedBy, ingredients);
+    }
+
+    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+        shapelessCrafting(null, category, result, group, unlockedBy, ingredients);
     }
 
     /**
@@ -217,7 +299,13 @@ public class MKRecipeProvider extends RecipeProvider {
      * Additionally, it is possible to use {@link ObjectIntPair} or {@link IntObjectPair} containing one of the above
      * types to specify that the ingredient should appear multiple times (specified by the integer of the pair). This
      * helps avoid repetition of the same ingredient several times in the ingredients list.
+     * <p>
+     * There are many overloads that accept different variations and combinations of these arguments in the same order.
+     * Generally, recipes start with an optional ID (string or ResourceLocation), a category, a result (ItemStack or
+     * pair of item + count), then an optional group name, an optional unlock criterion.
+     * The last argument is always the list of ingredients.
      *
+     * @param id          The ID to use for this recipe. If {@code null}, then one is chosen according to {@link RecipeBuilder#getDefaultRecipeId}.
      * @param category    The recipe category for showing in the green recipe book
      * @param result      The resulting item of this recipe (NBT and count are included in the generated recipe)
      * @param unlockedBy  A (nullable) pair of criterion name and criterion instance for unlocking the recipe.
@@ -228,10 +316,14 @@ public class MKRecipeProvider extends RecipeProvider {
      *                                  or if {@code ingredients} exceeds 9 ingredients, including any expanded pairs.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void shapelessCrafting(RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+    public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(output);
 
         ShapelessRecipeBuilder shapeless = new ShapelessRecipeBuilder(category, result);
+
+        if (group != null) {
+            shapeless.group(group);
+        }
 
         if (unlockedBy != null) {
             shapeless.unlockedBy(unlockedBy.left(), unlockedBy.right());
@@ -249,32 +341,32 @@ public class MKRecipeProvider extends RecipeProvider {
                     Preconditions.checkArgument(ingredient instanceof ItemLike);
                 }
 
-				switch (ingredient) {
-					case ItemLike itemLike -> {
-						shapeless.requires(itemLike);
+                switch (ingredient) {
+                    case ItemLike itemLike -> {
+                        shapeless.requires(itemLike);
 
-						if (noCriterion) {
-							MKRecipeProvider.unlockedByHaving(shapeless, itemLike);
-							noCriterion = false;
-						}
-					}
-					case TagKey tagKey -> {
-						shapeless.requires(tagKey);
+                        if (noCriterion) {
+                            MKRecipeProvider.unlockedByHaving(shapeless, itemLike);
+                            noCriterion = false;
+                        }
+                    }
+                    case TagKey tagKey -> {
+                        shapeless.requires(tagKey);
 
-						if (noCriterion) {
-							MKRecipeProvider.unlockedByHaving(shapeless, tagKey);
-							noCriterion = false;
-						}
-					}
-					case Ingredient ing -> {
-						shapeless.requires(ing);
+                        if (noCriterion) {
+                            MKRecipeProvider.unlockedByHaving(shapeless, tagKey);
+                            noCriterion = false;
+                        }
+                    }
+                    case Ingredient ing -> {
+                        shapeless.requires(ing);
 
-						if (noCriterion) {
-							noCriterion = !MKRecipeProvider.unlockedByHaving(shapeless, ing);
-						}
-					}
-					default -> throw MKRecipeProvider.nonIngredientArgument(ingredient);
-				}
+                        if (noCriterion) {
+                            noCriterion = !MKRecipeProvider.unlockedByHaving(shapeless, ing);
+                        }
+                    }
+                    default -> throw MKRecipeProvider.nonIngredientArgument(ingredient);
+                }
             }
 
             if (noCriterion && isMissingCriterion(shapeless)) {
@@ -282,7 +374,11 @@ public class MKRecipeProvider extends RecipeProvider {
             }
         }
 
-        shapeless.save(output);
+        if (id != null) {
+            shapeless.save(output, id);
+        } else {
+            shapeless.save(output);
+        }
     }
 
     // Helper method to handle ingredient-object pairs
@@ -385,29 +481,20 @@ public class MKRecipeProvider extends RecipeProvider {
         });
     }
 
-    /**
-     * @deprecated Use the version which accepts a RecipeCategory
-     */
-    @ApiStatus.ScheduledForRemoval(inVersion = "1.21")
-    @Deprecated(forRemoval = true)
-    public void grid2x2(ItemLike result, Ingredient ingredient) {
-        this.grid2x2(RecipeCategory.MISC, result, ingredient);
-    }
-
     public void grid2x2(RecipeCategory category, ItemLike result, Ingredient ingredient) {
-        this.grid2x2(category, result, 1, ingredient);
+        grid2x2(category, result, 1, ingredient);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, ItemLike ingredient) {
-        this.grid2x2(category, result, 1, ingredient);
+        grid2x2(category, result, 1, ingredient);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient) {
-        this.grid2x2(category, result, resultCount, ingredient, null);
+        grid2x2(category, result, resultCount, ingredient, null);
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, ItemLike ingredient) {
-        this.grid2x2(category, result, resultCount, Ingredient.of(ingredient));
+        grid2x2(category, result, resultCount, Ingredient.of(ingredient));
     }
 
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
@@ -450,7 +537,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void grid3x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
         Preconditions.checkNotNull(this.output);
 
-        shapedCrafting(category, result, recipe -> {
+        shapedCrafting(category, result, resultCount, recipe -> {
             recipe.define('#', ingredient);
             recipe.pattern("###");
             recipe.pattern("###");
@@ -487,7 +574,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void grid2x3(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
         Preconditions.checkNotNull(this.output);
 
-        shapedCrafting(category, result, recipe -> {
+        shapedCrafting(category, result, resultCount, recipe -> {
             recipe.define('#', ingredient);
             recipe.pattern("##");
             recipe.pattern("##");
@@ -511,6 +598,26 @@ public class MKRecipeProvider extends RecipeProvider {
 
     public void woodenTrapdoor(ItemLike result, Ingredient ingredient) {
         grid3x2(RecipeCategory.REDSTONE, result, 2, ingredient, "wooden_trapdoor");
+    }
+
+    public void woodenFence(ItemLike fence, ItemLike planks) {
+        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, fence, 3, recipe -> {
+            recipe.define('#', Tags.Items.RODS_WOODEN);
+            recipe.define('W', planks);
+            recipe.pattern("W#W");
+            recipe.pattern("W#W");
+            recipe.group("wooden_fence");
+        });
+    }
+
+    public void woodenFenceGate(ItemLike fenceGate, ItemLike planks) {
+        shapedCrafting(RecipeCategory.BUILDING_BLOCKS, fenceGate, recipe -> {
+            recipe.define('#', Tags.Items.RODS_WOODEN);
+            recipe.define('W', planks);
+            recipe.pattern("#W#");
+            recipe.pattern("#W#");
+            recipe.group("wooden_fence_gate");
+        });
     }
 
     public void stairs(ItemLike result, ItemLike input) {
@@ -565,6 +672,22 @@ public class MKRecipeProvider extends RecipeProvider {
 
     public void woodenSlab(ItemLike result, ItemLike planks) {
         slab(result, planks, "wooden_slab");
+    }
+
+    public void special(String id, Function<CraftingBookCategory, Recipe<?>> factory) {
+        special(ResourceLocation.fromNamespaceAndPath(this.modid, id), factory);
+    }
+
+    /**
+     * Used for special recipes like firework stars or butterfly breeding.
+     *
+     * @param id      The ID of this recipe.
+     * @param factory The factory used to serialize the recipe result.
+     */
+    public void special(ResourceLocation id, Function<CraftingBookCategory, Recipe<?>> factory) {
+        Preconditions.checkNotNull(this.output);
+
+        SpecialRecipeBuilder.special(factory).save(this.output, id.toString());
     }
 
     public void foodCooking(ItemLike input, ItemLike result, float experience) {
@@ -704,19 +827,24 @@ public class MKRecipeProvider extends RecipeProvider {
      * @return True if a criterion was added to the recipe
      */
     public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.getValues().length == 1) {
-            Ingredient.Value value = ingredient.getValues()[0];
+        if (ingredient.getValues().length == 0) {
+            return false;
+        }
 
+        LinkedHashSet<ItemLike> items = new LinkedHashSet<>();
+
+        for (var value : ingredient.getValues()) {
             if (value instanceof Ingredient.ItemValue itemValue) {
-                MKRecipeProvider.unlockedByHaving(builder, itemValue.item().getItem());
-                return true;
+                items.add(itemValue.item().getItem());
             } else if (value instanceof Ingredient.TagValue tagValue) {
+                // Prioritize tags over items
                 MKRecipeProvider.unlockedByHaving(builder, tagValue.tag());
                 return true;
             }
         }
 
-        return false;
+        MKRecipeProvider.unlockedByHaving(builder, items.iterator().next());
+        return true;
     }
 
     /**
@@ -744,12 +872,13 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     private static <T> T unlockedBy(T recipeBuilder, Criterion<?> criterion) {
-		switch (recipeBuilder) {
-			case RecipeBuilder b -> b.unlockedBy("has_item", criterion);
-			case SmithingTrimRecipeBuilder b -> b.unlocks("has_item", criterion);
-			case SmithingTransformRecipeBuilder b -> b.unlocks("has_item", criterion);
-			default -> throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
-		}
+        switch (recipeBuilder) {
+            case RecipeBuilder b -> b.unlockedBy("has_item", criterion);
+            case SmithingTrimRecipeBuilder b -> b.unlocks("has_item", criterion);
+            case SmithingTransformRecipeBuilder b -> b.unlocks("has_item", criterion);
+            default ->
+                    throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
+        }
 
         return recipeBuilder;
     }
@@ -808,14 +937,14 @@ public class MKRecipeProvider extends RecipeProvider {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static Ingredient ingredient(Object... values) {
         return Ingredient.fromValues(Arrays.stream(values).map(value -> switch (value) {
-			case Ingredient.Value ingredientValue -> ingredientValue;
-			case TagKey itemTag when itemTag.registry().equals(Registries.ITEM) -> new Ingredient.TagValue(itemTag);
-			case ItemLike itemLike -> new Ingredient.ItemValue(new ItemStack(itemLike));
-			case Supplier<?> supplier when supplier.get() instanceof ItemLike itemLike ->
-					new Ingredient.ItemValue(new ItemStack(itemLike));
-			case null, default ->
-					throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass() + " is not subclass of Ingredient.Value, TagKey<Item>, ItemLike, or Supplier<? extends ItemLike>");
-		}));
+            case Ingredient.Value ingredientValue -> ingredientValue;
+            case TagKey itemTag when itemTag.registry().equals(Registries.ITEM) -> new Ingredient.TagValue(itemTag);
+            case ItemLike itemLike -> new Ingredient.ItemValue(new ItemStack(itemLike));
+            case Supplier<?> supplier when supplier.get() instanceof ItemLike itemLike ->
+                    new Ingredient.ItemValue(new ItemStack(itemLike));
+            case null, default ->
+                    throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass() + " is not subclass of Ingredient.Value, TagKey<Item>, ItemLike, or Supplier<? extends ItemLike>");
+        }));
     }
 
     private static IllegalArgumentException nonIngredientArgument(Object item) {
