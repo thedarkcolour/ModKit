@@ -5,9 +5,7 @@ plugins {
 
 version = '1.0'
 group = 'thedarkcolour.modkit'
-base {
-    archivesName = 'modkit'
-}
+base.archivesName = 'modkit'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 

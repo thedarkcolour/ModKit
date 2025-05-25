@@ -23,6 +23,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.tags.TagsProvider;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -86,6 +87,14 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
     public DirectTagAppender<T> tag(TagKey<T> tag) {
         var builder = this.getOrCreateRawBuilder(tag);
         return new DirectTagAppender<>(builder, this.keyGetter, this.modId);
+    }
+
+    public DirectTagAppender<T> tag(String id) {
+        return tag(new ResourceLocation(id));
+    }
+
+    public DirectTagAppender<T> tag(ResourceLocation id) {
+        return tag(TagKey.create(this.registryKey, id));
     }
 
     @Override
