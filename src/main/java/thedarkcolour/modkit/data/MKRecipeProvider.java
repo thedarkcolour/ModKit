@@ -97,6 +97,10 @@ public class MKRecipeProvider extends RecipeProvider {
         pushRecipeOutput(outputWithConditions, addRecipes);
     }
 
+    public void pushRecipeOutput(SimpleRecipeOutput newOutput, Consumer<RecipeOutput> action) {
+        pushRecipeOutput((RecipeOutput) newOutput, action);
+    }
+
     /**
      * This method temporarily changes the {@link RecipeOutput} used for the finished recipe writer.
      * By default, the writer used by MKRecipeProvider is provided in {@link RecipeProvider#run(CachedOutput)}.
@@ -949,6 +953,23 @@ public class MKRecipeProvider extends RecipeProvider {
 
     private static IllegalArgumentException nonIngredientArgument(Object item) {
         return new IllegalArgumentException("Argument " + item + " is not instance of Ingredient, TagKey, or ItemLike");
+    }
+
+    /**
+     * Allows using {@link #pushRecipeOutput(SimpleRecipeOutput, Consumer)} with just a lambda for the recipe output.
+     */
+    public interface SimpleRecipeOutput extends RecipeOutput {
+        @Override
+        default Advancement.Builder advancement() {
+            return new Advancement.Builder();
+        }
+
+        void accept(ResourceLocation id, Recipe<?> recipe);
+
+        @Override
+        default void accept(ResourceLocation id, Recipe<?> recipe, @Nullable AdvancementHolder advancementHolder, ICondition... conditions) {
+            accept(id, recipe);
+        }
     }
 
     static {
