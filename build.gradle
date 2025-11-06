@@ -1,5 +1,5 @@
 plugins {
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'net.neoforged.gradle.userdev' version '7.0.163'
     id 'maven-publish'
 }
 
@@ -7,91 +7,48 @@ version = '1.0'
 group = 'thedarkcolour.modkit'
 base.archivesName = 'modkit'
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-minecraft {
-    mappings channel: 'official', version: '1.20.1'
+runs {
+    configureEach {
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+        systemProperty 'forge.logging.console.level', 'debug'
+    }
 
-    runs {
-        client {
-            workingDirectory project.file('run')
-			
-            property 'forge.logging.console.level', 'debug'
+    client {
+        workingDirectory project.file('run')
 
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-            }
-        }
+        modSource project.sourceSets.main
+    }
 
-        server {
-            workingDirectory project.file('run')
+    server {
+        workingDirectory project.file('run')
 
-            property 'forge.logging.console.level', 'debug'
+        modSource project.sourceSets.main
+    }
 
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-            }
-        }
+    data {
+        workingDirectory project.file('run')
 
-        data {
-            workingDirectory project.file('run')
-        }
+        modSource project.sourceSets.main
 
-        modkitData {
-            workingDirectory project.file('run')
+        programArguments.addAll '--mod', 'modkit', '--all', '--output', file('src/generated/resources/').absolutePath, '--existing', file('src/main/resources/').absolutePath
+    }
 
-            parent runs.data
+    testmodClient {
+        workingDirectory project.file('run')
 
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'modkit', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        modSource project.sourceSets.main
+        modSource project.sourceSets.test
+    }
 
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-            }
-        }
+    testmodData {
+        workingDirectory project.file('run')
 
-        testmodClient {
-            workingDirectory project.file('run')
+        modSource project.sourceSets.main
+        modSource project.sourceSets.test
 
-            property 'forge.logging.console.level', 'debug'
-
-            parent runs.client
-            ideaModule "${project.name}.test"
-
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-                testmod {
-                    source sourceSets.test
-                }
-            }
-        }
-
-        testmodData {
-            workingDirectory project.file('run')
-
-            parent runs.data
-            ideaModule "${project.name}.test"
-
-            property 'forge.logging.console.level', 'debug'
-            args '--mod', 'testmod', '--all', '--output', file('src/generated_test/resources/'), '--existing', file('src/test/resources')
-
-            mods {
-                modkit {
-                    source sourceSets.main
-                }
-                testmod {
-                    source sourceSets.test
-                }
-            }
-        }
+        programArguments.addAll '--mod', 'testmod', '--all', '--output', file('src/generated_test/resources/').absolutePath, '--existing', file('src/test/resources').absolutePath
     }
 }
 
@@ -100,7 +57,7 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 sourceSets.test.resources { srcDir 'src/generated_test/resources' }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.20.1-47.0.3'
+    implementation 'net.neoforged:neoforge:21.1.0'
 }
 
 processResources {
