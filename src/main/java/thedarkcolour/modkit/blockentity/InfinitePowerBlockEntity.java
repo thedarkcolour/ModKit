@@ -30,7 +30,7 @@ public class InfinitePowerBlockEntity extends BlockEntity implements IEnergyStor
         super(ModKit.INFINITE_POWER_TYPE.get(), pos, state);
     }
 
-    public static void tick(Level level, BlockPos pos, BlockState state, BlockEntity tile) {
+    public static void tick(Level level, BlockPos pos) {
         if (!level.isClientSide) {
             Direction.stream().forEach(direction -> {
                 BlockPos adjacentPos = pos.relative(direction);

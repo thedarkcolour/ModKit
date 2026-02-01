@@ -17,6 +17,7 @@
 package thedarkcolour.modkit.item;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.player.Player;
@@ -25,26 +26,25 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class KillWand extends Item {
-    public KillWand(Properties properties) {
+public class KillWandItem extends Item {
+    public KillWandItem(Properties properties) {
         super(properties);
     }
 
     @Override
-    public boolean canAttackBlock(BlockState state, Level level, BlockPos pos, Player player) {
-        return !player.isCreative();
+    public boolean canDestroyBlock(ItemStack stack, BlockState state, Level level, BlockPos pos, LivingEntity entity) {
+        return !(entity instanceof Player player) || !player.isCreative();
     }
 
     @Override
-    public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-        target.skipDropExperience();
-        target.kill();
-        target.setHealth(0);
-
+    public void hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
         // no children
         if (target instanceof Slime slime) {
             slime.setSize(0, false);
         }
-        return true;
+
+        target.skipDropExperience();
+        target.kill((ServerLevel) attacker.level());
+        target.setHealth(0);
     }
 }

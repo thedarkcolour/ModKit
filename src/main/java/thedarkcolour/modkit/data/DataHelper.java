@@ -22,7 +22,6 @@ import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.resources.ResourceKey;
-import net.neoforged.neoforge.common.util.Lazy;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -63,7 +62,7 @@ public class DataHelper {
     @Nullable
     protected MKBlockModelProvider blockModels;
     @Nullable
-    protected MKRecipeProvider recipes;
+    protected MKRecipeProvider.Runner recipes;
     @Nullable
     protected BiFunction<MKEnglishProvider, PackOutput, List<DataProvider>> addModonomiconBooks;
     @Nullable
@@ -79,8 +78,8 @@ public class DataHelper {
     public MKDamageTypeProvider createDamageTypes(Consumer<MKDamageTypeProvider> addTypes) {
         this.checkNotCreated(this.damageTypes, "Damage Types");
 
-        this.damageTypes = new MKDamageTypeProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), this.modid, this.event.getLookupProvider(), addTypes);
-        this.event.getGenerator().addProvider(this.event.includeServer(), this.damageTypes);
+        this.damageTypes = new MKDamageTypeProvider(this.event.getGenerator().getPackOutput(), this.modid, this.event.getLookupProvider(), addTypes);
+        this.event.getGenerator().addProvider(true, this.damageTypes);
 
         return this.damageTypes;
     }
@@ -107,7 +106,7 @@ public class DataHelper {
             }
         }
 
-        this.event.getGenerator().addProvider(this.event.includeClient(), this.english);
+        this.event.getGenerator().addProvider(true, this.english);
 
         return this.english;
     }
@@ -141,8 +140,8 @@ public class DataHelper {
     public MKItemModelProvider createItemModels(boolean generate3dBlockItems, boolean generate2dItems, boolean generateSpawnEggs, @Nullable Consumer<MKItemModelProvider> addItemModels) {
         this.checkNotCreated(this.itemModels, "Item models");
 
-        this.itemModels = new MKItemModelProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), this.modid, this.logger, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
-        this.event.getGenerator().addProvider(this.event.includeClient(), this.itemModels);
+        this.itemModels = new MKItemModelProvider(this.event.getGenerator().getPackOutput(), this.modid, this.logger, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
+        this.event.getGenerator().addProvider(true, this.itemModels);
 
         return this.itemModels;
     }
@@ -164,17 +163,8 @@ public class DataHelper {
             this.logger.warn("Item model generation was added BEFORE block model generation; this is incorrect, expect some false alarm errors");
         }
 
-        // Lazy is used so that createItemModels is called automatically if your mod isn't using it
-        Lazy<MKItemModelProvider> lazyItemModels = Lazy.of(() -> {
-            if (this.itemModels == null) {
-                this.createItemModels(false, false, false, null);
-                this.event.getGenerator().addProvider(this.event.includeClient(), this.itemModels);
-            }
-            return this.itemModels;
-        });
-
-        this.blockModels = new MKBlockModelProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), lazyItemModels, this.modid, this.logger, addBlockModels);
-        this.event.getGenerator().addProvider(this.event.includeClient(), this.blockModels);
+        this.blockModels = new MKBlockModelProvider(this.event.getGenerator().getPackOutput(), this.modid, addBlockModels);
+        this.event.getGenerator().addProvider(true, this.blockModels);
 
         return this.blockModels;
     }
@@ -186,11 +176,11 @@ public class DataHelper {
      *                   built-in methods for common recipe types. If you need something more advanced, you may write
      *                   methods using the given finished recipe writer and call them in your addRecipes function.
      */
-    public MKRecipeProvider createRecipes(BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
+    public MKRecipeProvider.Runner createRecipes(BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
         this.checkNotCreated(this.recipes, "Recipes");
 
-        this.recipes = new MKRecipeProvider(this.event.getGenerator().getPackOutput(), this.event.getLookupProvider(), this.modid, addRecipes);
-        this.event.getGenerator().addProvider(this.event.includeServer(), this.recipes);
+        this.recipes = new MKRecipeProvider.Runner(this.event.getGenerator().getPackOutput(), this.event.getLookupProvider(), this.modid, addRecipes);
+        this.event.getGenerator().addProvider(true, this.recipes);
 
         return this.recipes;
     }
@@ -209,7 +199,7 @@ public class DataHelper {
 
         var provider = new MKTagsProvider<>(this, registry, addTags);
         this.tags.put(registry, provider);
-        this.event.getGenerator().addProvider(this.event.includeServer(), provider);
+        this.event.getGenerator().addProvider(true, provider);
 
         return provider;
     }

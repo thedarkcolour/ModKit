@@ -1,7 +1,7 @@
-// 1.21.1	2025-03-18T20:12:20.9161225	ModKit Item Models for mod 'modkit'
-33a1320eb2ce72387140b51876d8c846d14ec1fe assets/modkit/models/item/clear_wand.json
-63b46cfee75913ae8c736b72b6496c0dc7456a2b assets/modkit/models/item/clone_wand.json
-4244bff20534b90da48216c6c9333deacc089ad4 assets/modkit/models/item/distance_wand.json
-c008e5151b9e00b772be5dd79789aa86e1368f6c assets/modkit/models/item/fill_wand.json
+// 1.21.8	2026-02-01T15:55:04.819872272	ModKit Item Models for mod 'modkit'
+a56888e1a66e039a08b2728b8de7c60a14debd1e assets/modkit/models/item/clear_wand.json
+ba16086711f44442be9f744a0f6d3ab4f2bf8024 assets/modkit/models/item/clone_wand.json
+0aa02fcf5a84b2b2bb29cfd5d1317b171b2a8710 assets/modkit/models/item/distance_wand.json
+af28fa74bb19b25575537d71c6a115e971dc46a4 assets/modkit/models/item/fill_wand.json
 c55943473c9bdfc926d74745d763c538c622e950 assets/modkit/models/item/infinite_power.json
-a7741dfb65553a25ac36cde1caffca4f1f0ee620 assets/modkit/models/item/kill_wand.json
+70a9b69d7df48049f7b21a2eba9327363e68db5c assets/modkit/models/item/kill_wand.json

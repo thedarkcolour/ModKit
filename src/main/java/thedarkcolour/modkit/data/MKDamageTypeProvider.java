@@ -20,12 +20,10 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.PackType;
 import net.minecraft.world.damagesource.DamageEffects;
 import net.minecraft.world.damagesource.DamageScaling;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.damagesource.DeathMessageType;
-import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.common.data.JsonCodecProvider;
 
 import java.util.HashMap;
@@ -36,8 +34,8 @@ public class MKDamageTypeProvider extends JsonCodecProvider<DamageType> {
     private final Consumer<MKDamageTypeProvider> addTypes;
     private final HashMap<ResourceLocation, DamageTypeBuilder> types = new HashMap<>();
 
-    public MKDamageTypeProvider(PackOutput output, ExistingFileHelper helper, String modid, CompletableFuture<HolderLookup.Provider> lookupProvider, Consumer<MKDamageTypeProvider> addTypes) {
-        super(output, PackOutput.Target.DATA_PACK, "damage_type", PackType.SERVER_DATA, DamageType.DIRECT_CODEC, lookupProvider, modid, helper);
+    public MKDamageTypeProvider(PackOutput output, String modid, CompletableFuture<HolderLookup.Provider> lookupProvider, Consumer<MKDamageTypeProvider> addTypes) {
+        super(output, PackOutput.Target.DATA_PACK, "damage_type", DamageType.DIRECT_CODEC, lookupProvider, modid);
         this.addTypes = addTypes;
     }
 

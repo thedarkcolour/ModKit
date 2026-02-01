@@ -54,7 +54,6 @@ import java.util.function.Function;
  */
 @SuppressWarnings({"unchecked", "deprecation", "unused"})
 public class MKEnglishProvider extends LanguageProvider {
-    private static final String UNKNOWN_TRANSLATION_KEY = "Tried to add translation \"{}\" for object {}, but was unable to determine translation key";
     private static final Field FIELD_DATA;
 
     static {
@@ -96,7 +95,7 @@ public class MKEnglishProvider extends LanguageProvider {
         addTranslationHandler(EntityType.class, EntityType::getDescriptionId);
         addTranslationHandler(MobEffect.class, MobEffect::getDescriptionId);
         addTranslationHandler(Enchantment.class, MKEnglishProvider::getEnchantmentDescriptionId);
-        addTranslationHandler(ItemStack.class, ItemStack::getDescriptionId);
+        addTranslationHandler(ItemStack.class, stack -> stack.getItem().getDescriptionId());
         addTranslationHandler(FluidType.class, FluidType::getDescriptionId);
 
         // Registries which will have names generated automatically
@@ -108,6 +107,15 @@ public class MKEnglishProvider extends LanguageProvider {
         autoTranslatedRegistries.add(NeoForgeRegistries.Keys.FLUID_TYPES);
     }
 
+    @Nullable
+    public static String getEnchantmentDescriptionId(Enchantment enchantment) {
+        if (enchantment.description().getContents() instanceof TranslatableContents translatable) {
+            return translatable.getKey();
+        } else {
+            return null;
+        }
+    }
+
     @Override
     protected void addTranslations() {
         if (this.addNames != null) {
@@ -116,7 +124,7 @@ public class MKEnglishProvider extends LanguageProvider {
 
         if (this.generateNames) {
             for (ResourceKey<? extends Registry<?>> registryKey : this.autoTranslatedRegistries) {
-                var optional = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registry(registryKey);
+                var optional = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).lookup(registryKey);
 
                 if (optional.isPresent()) {
                     MutableInt i = new MutableInt();
@@ -132,7 +140,7 @@ public class MKEnglishProvider extends LanguageProvider {
                                     i.increment();
                                 }
                             } else {
-                                this.logger.warn(UNKNOWN_TRANSLATION_KEY, name, obj);
+                                this.logger.warn("Tried to automatically add translation \"{}\" for object {}, but was unable to determine translation key", name, obj);
                             }
                         });
                     } catch (IllegalArgumentException e) {
@@ -200,7 +208,7 @@ public class MKEnglishProvider extends LanguageProvider {
         if (translationKey != null) {
             add(translationKey, name);
         } else {
-            this.logger.warn(UNKNOWN_TRANSLATION_KEY, name, key);
+            this.logger.warn("Tried to manually add translation \"{}\" for object {}, but was unable to determine translation key", name, key);
         }
     }
 
@@ -217,14 +225,5 @@ public class MKEnglishProvider extends LanguageProvider {
         }
 
         throw new IllegalArgumentException("Unsupported registry object type for translation keys");
-    }
-
-    @Nullable
-    public static String getEnchantmentDescriptionId(Enchantment enchantment) {
-        if (enchantment.description().getContents() instanceof TranslatableContents translatable) {
-            return translatable.getKey();
-        } else {
-            return null;
-        }
     }
 }

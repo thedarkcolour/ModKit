@@ -23,10 +23,11 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import thedarkcolour.modkit.ModKit;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 public class FillWandItem extends AbstractFillWand {
     public FillWandItem(Properties pProperties) {
@@ -53,19 +54,19 @@ public class FillWandItem extends AbstractFillWand {
                     player.displayClientMessage(Component.literal("No filler block (use sneak click on a block)"), true);
                 } else {
                     fill(stack, savedFillBlock, pos, level, player);
-                    player.getCooldowns().addCooldown(this, 5);
+                    player.getCooldowns().addCooldown(stack, 5);
                 }
             }
         }
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag advanced) {
-        super.appendHoverText(stack, context, tooltip, advanced);
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltipAdder, TooltipFlag advanced) {
+        super.appendHoverText(stack, context, display, tooltipAdder, advanced);
 
         var fillBlock = stack.get(ModKit.FILL_BLOCK_COMPONENT);
         if (fillBlock != null) {
-            tooltip.add(Component.literal("Filler Block: ").append(Component.translatable(fillBlock.getBlock().getDescriptionId()).withStyle(ChatFormatting.YELLOW)));
+            tooltipAdder.accept(Component.literal("Filler Block: ").append(Component.translatable(fillBlock.getBlock().getDescriptionId()).withStyle(ChatFormatting.YELLOW)));
         }
     }
 }

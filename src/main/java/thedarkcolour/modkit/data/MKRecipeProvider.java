@@ -17,18 +17,25 @@
 package thedarkcolour.modkit.data;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.IntObjectPair;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.advancements.Criterion;
+import net.minecraft.advancements.critereon.*;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
+import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.*;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
@@ -38,6 +45,7 @@ import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.common.crafting.CompoundIngredient;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.data.recipe.ItemDataMap;
@@ -55,26 +63,153 @@ import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MKRecipeProvider extends RecipeProvider {
+    private static final VarHandle SHAPELESS_CRITERIA;
+    private static final VarHandle SHAPED_CRITERIA;
+    private static final VarHandle SHAPED_KEYS;
+
+    static {
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        VarHandle shapeless;
+        VarHandle shaped;
+        VarHandle shapedKeys;
+
+        try {
+            shapeless = MethodHandles.privateLookupIn(ShapelessRecipeBuilder.class, lookup).findVarHandle(ShapelessRecipeBuilder.class, "criteria", Map.class);
+            shaped = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "criteria", Map.class);
+            shapedKeys = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "key", Map.class);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+
+        SHAPELESS_CRITERIA = shapeless;
+        SHAPED_CRITERIA = shaped;
+        SHAPED_KEYS = shapedKeys;
+    }
+
     private final String modid;
     private final BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes;
     @Nullable
     private RecipeOutput output;
 
-    private static final VarHandle SHAPELESS_CRITERIA;
-    private static final VarHandle SHAPED_CRITERIA;
-    private static final VarHandle SHAPED_KEYS;
-
-    protected MKRecipeProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> lookupProvider, String modid, BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
-        super(output, lookupProvider);
+    protected MKRecipeProvider(RecipeOutput output, HolderLookup.Provider lookupProvider, String modid, BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
+        super(lookupProvider, output);
         this.modid = modid;
         this.addRecipes = addRecipes;
     }
 
+    // Helper method to handle ingredient-object pairs
+    private static ArrayList<Object> expandPairIngredients(Object... ingredients) {
+        ArrayList<Object> flattened = new ArrayList<>();
+
+        for (Object o : ingredients) {
+            // Default is to just add the ingredient once
+            Object ingredient = o;
+            int count = 1;
+
+            // Handle pairs
+            if (ingredient instanceof ObjectIntPair<?> pair) {
+                count = pair.rightInt();
+                ingredient = pair.left();
+            } else if (ingredient instanceof IntObjectPair<?> pair) {
+                count = pair.leftInt();
+                ingredient = pair.right();
+            }
+
+            // make it clear that recursive expanding is not permitted
+            if (ingredient instanceof ObjectIntPair<?> || ingredient instanceof IntObjectPair<?>) {
+                throw new IllegalArgumentException("Cannot have an ingredient which is a pair of pairs");
+            }
+
+            // Add the correct ingredient the correct number of times
+            for (int j = 0; j < count; j++) {
+                flattened.add(ingredient);
+            }
+        }
+
+        if (flattened.size() > 9) {
+            throw new IllegalArgumentException("Cannot have more than 9 ingredients in a shapeless crafting recipe");
+        }
+
+        return flattened;
+    }
+
+    private static boolean isMissingCriterion(RecipeBuilder builder) {
+        if (builder instanceof ShapelessRecipeBuilder) {
+            return ((Map<?, ?>) SHAPELESS_CRITERIA.get(builder)).isEmpty();
+        } else if (builder instanceof ShapedRecipeBuilder) {
+            return ((Map<?, ?>) SHAPED_CRITERIA.get(builder)).isEmpty();
+        } else {
+            throw new IllegalArgumentException("Unable to determine if recipe is missing criterion");
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static ItemStack newItemStack(ItemLike item, int count, ItemDataMap data) {
+        ItemStack stack = new ItemStack(item, count);
+
+        for (ItemDataMap.Entry entry : data.entrySet()) {
+            stack.set(entry.type(), entry.value());
+        }
+
+        return stack;
+    }
+
+    /**
+     * @return The registry name/ID of the given item
+     */
+    @SuppressWarnings("deprecation")
+    public static ResourceLocation id(ItemLike item) {
+        return item.asItem().builtInRegistryHolder().key().location();
+    }
+
+    private static <T> T unlockedBy(T recipeBuilder, Criterion<?> criterion) {
+        switch (recipeBuilder) {
+            case RecipeBuilder b -> b.unlockedBy("has_item", criterion);
+            case SmithingTrimRecipeBuilder b -> b.unlocks("has_item", criterion);
+            case SmithingTransformRecipeBuilder b -> b.unlocks("has_item", criterion);
+            default ->
+                    throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
+        }
+
+        return recipeBuilder;
+    }
+
+    public static String path(ItemLike item) {
+        if (BuiltInRegistries.ITEM.containsValue(item.asItem())) {
+            return BuiltInRegistries.ITEM.getKey(item.asItem()).getPath();
+        } else {
+            throw new IllegalArgumentException("Item " + item.asItem() + " not found in items registry!");
+        }
+    }
+
+    public static Ingredient ingredient(ItemLike item) {
+        return Ingredient.of(item);
+    }
+
+    public static Ingredient ingredient(ItemLike... items) {
+        return Ingredient.of(items);
+    }
+
+    public static Ingredient lazyIngredient(Supplier<? extends ItemLike> item) {
+        return ingredient(item.get());
+    }
+
+    @SafeVarargs
+    public static Ingredient lazyIngredient(Supplier<? extends ItemLike>... items) {
+        ItemLike[] values = new ItemLike[items.length];
+        for (int i = 0; i < items.length; i++) {
+            values[i] = items[i].get();
+        }
+        return ingredient(values);
+    }
+
+    private static IllegalArgumentException nonIngredientArgument(Object item) {
+        return new IllegalArgumentException("Argument " + item + " is not instance of Ingredient, TagKey, or ItemLike");
+    }
+
     @Override
-    protected void buildRecipes(RecipeOutput output) {
-        this.output = output;
-        this.addRecipes.accept(output, this);
-        this.output = null;
+    protected void buildRecipes() {
+        this.addRecipes.accept(this.output, this);
     }
 
     public void conditional(String recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
@@ -103,7 +238,7 @@ public class MKRecipeProvider extends RecipeProvider {
 
     /**
      * This method temporarily changes the {@link RecipeOutput} used for the finished recipe writer.
-     * By default, the writer used by MKRecipeProvider is provided in {@link RecipeProvider#run(CachedOutput)}.
+     * By default, the recipe output used by MKRecipeProvider comes from the data generation event.
      * This method may be useful when an alternative behavior for handling FinishedRecipes generated by this class
      * is desired.
      *
@@ -148,8 +283,13 @@ public class MKRecipeProvider extends RecipeProvider {
             }
 
             @Override
-            public void accept(ResourceLocation id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
-                oldWriter.accept(renaming.apply(id), recipe, advancement, conditions);
+            public void includeRootAdvancement() {
+                oldWriter.includeRootAdvancement();
+            }
+
+            @Override
+            public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+                oldWriter.accept(createRecipeKey(renaming.apply(id.location())), recipe, advancement, conditions);
             }
         }, runnable);
     }
@@ -190,13 +330,13 @@ public class MKRecipeProvider extends RecipeProvider {
         Preconditions.checkNotNull(this.output);
 
         ItemStack resultStack = newItemStack(result, resultCount, resultData);
-        ShapedRecipeBuilder builder = new ShapedRecipeBuilder(category, resultStack);
+        ShapedRecipeBuilder builder = ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), category, resultStack);
         recipe.accept(builder);
         if (isMissingCriterion(builder)) {
             attemptAutoCriterion(builder);
         }
 
-        ResourceLocation id = createRecipeId(recipeId, builder.getResult());
+        ResourceKey<Recipe<?>> id = createRecipeKey(recipeId, builder.getResult());
 
         builder.save(this.output, id);
     }
@@ -223,6 +363,14 @@ public class MKRecipeProvider extends RecipeProvider {
         } else {
             return ResourceLocation.fromNamespaceAndPath(this.modid, MKRecipeProvider.path(result));
         }
+    }
+
+    public ResourceKey<Recipe<?>> createRecipeKey(@Nullable String recipeId, ItemLike result) {
+        return ResourceKey.create(Registries.RECIPE, createRecipeId(recipeId, result));
+    }
+
+    public ResourceKey<Recipe<?>> createRecipeKey(ResourceLocation recipeId) {
+        return ResourceKey.create(Registries.RECIPE, recipeId);
     }
 
     /**
@@ -323,7 +471,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(output);
 
-        ShapelessRecipeBuilder shapeless = new ShapelessRecipeBuilder(category, result);
+        ShapelessRecipeBuilder shapeless = ShapelessRecipeBuilder.shapeless(this.registries.lookupOrThrow(Registries.ITEM), category, result);
 
         if (group != null) {
             shapeless.group(group);
@@ -350,7 +498,7 @@ public class MKRecipeProvider extends RecipeProvider {
                         shapeless.requires(itemLike);
 
                         if (noCriterion) {
-                            MKRecipeProvider.unlockedByHaving(shapeless, itemLike);
+                            unlockedByHaving(shapeless, itemLike);
                             noCriterion = false;
                         }
                     }
@@ -358,7 +506,7 @@ public class MKRecipeProvider extends RecipeProvider {
                         shapeless.requires(tagKey);
 
                         if (noCriterion) {
-                            MKRecipeProvider.unlockedByHaving(shapeless, tagKey);
+                            unlockedByHaving(shapeless, tagKey);
                             noCriterion = false;
                         }
                     }
@@ -366,7 +514,7 @@ public class MKRecipeProvider extends RecipeProvider {
                         shapeless.requires(ing);
 
                         if (noCriterion) {
-                            noCriterion = !MKRecipeProvider.unlockedByHaving(shapeless, ing);
+                            noCriterion = !unlockedByHaving(shapeless, ing);
                         }
                     }
                     default -> throw MKRecipeProvider.nonIngredientArgument(ingredient);
@@ -379,76 +527,19 @@ public class MKRecipeProvider extends RecipeProvider {
         }
 
         if (id != null) {
-            shapeless.save(output, id);
+            shapeless.save(output, createRecipeKey(id));
         } else {
             shapeless.save(output);
         }
     }
 
-    // Helper method to handle ingredient-object pairs
-    private static ArrayList<Object> expandPairIngredients(Object... ingredients) {
-        ArrayList<Object> flattened = new ArrayList<>();
-
-        for (Object o : ingredients) {
-            // Default is to just add the ingredient once
-            Object ingredient = o;
-            int count = 1;
-
-            // Handle pairs
-            if (ingredient instanceof ObjectIntPair<?> pair) {
-                count = pair.rightInt();
-                ingredient = pair.left();
-            } else if (ingredient instanceof IntObjectPair<?> pair) {
-                count = pair.leftInt();
-                ingredient = pair.right();
-            }
-
-            // make it clear that recursive expanding is not permitted
-            if (ingredient instanceof ObjectIntPair<?> || ingredient instanceof IntObjectPair<?>) {
-                throw new IllegalArgumentException("Cannot have an ingredient which is a pair of pairs");
-            }
-
-            // Add the correct ingredient the correct number of times
-            for (int j = 0; j < count; j++) {
-                flattened.add(ingredient);
-            }
-        }
-
-        if (flattened.size() > 9) {
-            throw new IllegalArgumentException("Cannot have more than 9 ingredients in a shapeless crafting recipe");
-        }
-
-        return flattened;
-    }
-
-    private static boolean isMissingCriterion(RecipeBuilder builder) {
-        if (builder instanceof ShapelessRecipeBuilder) {
-            return ((Map<?, ?>) SHAPELESS_CRITERIA.get(builder)).isEmpty();
-        } else if (builder instanceof ShapedRecipeBuilder) {
-            return ((Map<?, ?>) SHAPED_CRITERIA.get(builder)).isEmpty();
-        } else {
-            throw new IllegalArgumentException("Unable to determine if recipe is missing criterion");
-        }
-    }
-
     @SuppressWarnings("unchecked")
-    private static void attemptAutoCriterion(ShapedRecipeBuilder builder) {
+    private void attemptAutoCriterion(ShapedRecipeBuilder builder) {
         for (Ingredient ingredient : ((Map<Character, Ingredient>) SHAPED_KEYS.get(builder)).values()) {
-            if (MKRecipeProvider.unlockedByHaving(builder, ingredient)) {
+            if (unlockedByHaving(builder, ingredient)) {
                 return;
             }
         }
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static ItemStack newItemStack(ItemLike item, int count, ItemDataMap data) {
-        ItemStack stack = new ItemStack(item, count);
-
-        for (ItemDataMap.Entry entry : data.entrySet()) {
-            stack.set(entry.type(), entry.value());
-        }
-
-        return stack;
     }
 
     /**
@@ -464,10 +555,10 @@ public class MKRecipeProvider extends RecipeProvider {
 
         grid3x3(RecipeCategory.BUILDING_BLOCKS, storage, Ingredient.of(material));
 
-        ShapelessRecipeBuilder fromStorage = new ShapelessRecipeBuilder(RecipeCategory.MISC, material, 9);
+        ShapelessRecipeBuilder fromStorage = ShapelessRecipeBuilder.shapeless(this.registries.lookupOrThrow(Registries.ITEM), RecipeCategory.MISC, material, 9);
         unlockedByHaving(fromStorage, storage);
         fromStorage.requires(storage);
-        fromStorage.save(this.output, id(material).withSuffix("_from_" + id(storage).getPath()));
+        fromStorage.save(this.output, createRecipeKey(id(material).withSuffix("_from_" + id(storage).getPath())));
     }
 
     public void grid3x3(ItemLike result, Ingredient ingredient) {
@@ -805,21 +896,13 @@ public class MKRecipeProvider extends RecipeProvider {
         @SuppressWarnings({"unchecked", "rawtypes"})
         SimpleCookingRecipeBuilder builder = SimpleCookingRecipeBuilder.generic(ingredient, category, result, experience, duration, serializer, (AbstractCookingRecipe.Factory) factory);
         unlockedByHaving(builder, ingredient);
-        builder.save(this.output, createRecipeId(id, result.asItem()));
+        builder.save(this.output, createRecipeKey(id, result.asItem()));
     }
 
     public void netheriteUpgrade(RecipeCategory category, Ingredient input, ItemLike result) {
         Preconditions.checkNotNull(this.output);
 
-        unlockedByHaving(smithing(Ingredient.of(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), input, Ingredient.of(Tags.Items.INGOTS_NETHERITE), category, result.asItem()), Tags.Items.INGOTS_NETHERITE).save(this.output, defaultRecipeId(result));
-    }
-
-    /**
-     * @return The registry name/ID of the given item
-     */
-    @SuppressWarnings("deprecation")
-    public static ResourceLocation id(ItemLike item) {
-        return item.asItem().builtInRegistryHolder().key().location();
+        unlockedByHaving(smithing(Ingredient.of(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), input, ingredient(Tags.Items.INGOTS_NETHERITE), category, result.asItem()), Tags.Items.INGOTS_NETHERITE).save(this.output, createRecipeKey(defaultRecipeId(result)));
     }
 
     /**
@@ -830,24 +913,24 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param ingredient The ingredient to try to use as a criterion
      * @return True if a criterion was added to the recipe
      */
-    public static boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.getValues().length == 0) {
+    public boolean unlockedByHaving(Object builder, Ingredient ingredient) {
+        if (ingredient.isEmpty() || ingredient.isCustom()) {
             return false;
         }
 
         LinkedHashSet<ItemLike> items = new LinkedHashSet<>();
 
-        for (var value : ingredient.getValues()) {
-            if (value instanceof Ingredient.ItemValue itemValue) {
-                items.add(itemValue.item().getItem());
-            } else if (value instanceof Ingredient.TagValue tagValue) {
-                // Prioritize tags over items
-                MKRecipeProvider.unlockedByHaving(builder, tagValue.tag());
-                return true;
-            }
+        Optional<TagKey<Item>> tag = ingredient.getValues().unwrapKey();
+        if (tag.isPresent()) {
+            unlockedByHaving(builder, tag.get());
+            return true;
         }
 
-        MKRecipeProvider.unlockedByHaving(builder, items.iterator().next());
+        for (var value : ingredient.getValues()) {
+            items.add(value.value());
+        }
+
+        unlockedByHaving(builder, items.iterator().next());
         return true;
     }
 
@@ -859,8 +942,16 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param item          The tag the player must have in their inventory to unlock the recipe
      * @return The recipe builder
      */
-    public static <T> T unlockedByHaving(T recipeBuilder, ItemLike item) {
+    public <T> T unlockedByHaving(T recipeBuilder, ItemLike item) {
         return unlockedBy(recipeBuilder, has(item));
+    }
+
+    public <T> T unlockedByHaving(T recipeBuilder, Holder<Item> holder) {
+        return unlockedBy(recipeBuilder, has(holder));
+    }
+
+    public Criterion<InventoryChangeTrigger.TriggerInstance> has(Holder<Item> holder) {
+        return inventoryTrigger(new ItemPredicate(Optional.of(HolderSet.direct(holder)), MinMaxBounds.Ints.ANY, DataComponentMatchers.ANY));
     }
 
     /**
@@ -871,88 +962,96 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param tag           The tag the player must have in their inventory to unlock the recipe
      * @return The recipe builder
      */
-    public static <T> T unlockedByHaving(T recipeBuilder, TagKey<Item> tag) {
+    public <T> T unlockedByHaving(T recipeBuilder, TagKey<Item> tag) {
         return unlockedBy(recipeBuilder, has(tag));
     }
 
-    private static <T> T unlockedBy(T recipeBuilder, Criterion<?> criterion) {
-        switch (recipeBuilder) {
-            case RecipeBuilder b -> b.unlockedBy("has_item", criterion);
-            case SmithingTrimRecipeBuilder b -> b.unlocks("has_item", criterion);
-            case SmithingTransformRecipeBuilder b -> b.unlocks("has_item", criterion);
-            default ->
-                    throw new IllegalArgumentException("Unknown recipe builder type: " + recipeBuilder.getClass().getName());
-        }
-
-        return recipeBuilder;
-    }
-
-    public static String path(ItemLike item) {
-        if (BuiltInRegistries.ITEM.containsValue(item.asItem())) {
-            return BuiltInRegistries.ITEM.getKey(item.asItem()).getPath();
-        } else {
-            throw new IllegalArgumentException("Item " + item.asItem() + " not found in items registry!");
-        }
-    }
-
-    public static Ingredient ingredient(ItemLike item) {
-        return Ingredient.of(item);
-    }
-
-    public static Ingredient ingredient(ItemLike... items) {
-        return Ingredient.of(items);
-    }
-
-    public static Ingredient lazyIngredient(Supplier<? extends ItemLike> item) {
-        return ingredient(item.get());
+    public Ingredient ingredient(TagKey<Item> tag) {
+        return tag(tag);
     }
 
     @SafeVarargs
-    public static Ingredient lazyIngredient(Supplier<? extends ItemLike>... items) {
-        ItemLike[] values = new ItemLike[items.length];
-        for (int i = 0; i < items.length; i++) {
-            values[i] = items[i].get();
-        }
-        return ingredient(values);
-    }
-
-    public static Ingredient ingredient(TagKey<Item> tag) {
-        return Ingredient.of(tag);
-    }
-
-    @SafeVarargs
-    public static Ingredient ingredient(TagKey<Item>... tags) {
-        return Ingredient.fromValues(Arrays.stream(tags).map(Ingredient.TagValue::new));
+    public final Ingredient ingredient(TagKey<Item>... tags) {
+        return new CompoundIngredient(Arrays.stream(tags).map(this::ingredient).toList()).toVanilla();
     }
 
     /**
      * Creates an ingredient with a series of values, a combination of the following types:
      * <ul>
      *     <li>{@link ItemLike}</li>
-     *     <li>{@link TagKey}&lt;{@link Item}&gt;</li>
      *     <li>{@link Supplier}&lt;? extends {@link ItemLike}&gt;</li>
-     *     <li>{@link Ingredient.Value}</li>
+     *     <li>{@link Holder}&lt;{@link Item}&gt;</li>
+     *     <li>{@link HolderSet}&lt;{@link Item}&gt;</li>
+     *     <li>{@link TagKey}&lt;{@link Item}&gt;</li>
+     *     <li>{@link Ingredient}</li>
      * </ul>
      *
      * @param values The values the ingredient can match against
      * @return An ingredient with the specified values
      * @throws IllegalArgumentException If any element in {@code values} is not one of the permitted types listed above
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static Ingredient ingredient(Object... values) {
-        return Ingredient.fromValues(Arrays.stream(values).map(value -> switch (value) {
-            case Ingredient.Value ingredientValue -> ingredientValue;
-            case TagKey itemTag when itemTag.registry().equals(Registries.ITEM) -> new Ingredient.TagValue(itemTag);
-            case ItemLike itemLike -> new Ingredient.ItemValue(new ItemStack(itemLike));
-            case Supplier<?> supplier when supplier.get() instanceof ItemLike itemLike ->
-                    new Ingredient.ItemValue(new ItemStack(itemLike));
-            case null, default ->
-                    throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass() + " is not subclass of Ingredient.Value, TagKey<Item>, ItemLike, or Supplier<? extends ItemLike>");
-        }));
-    }
+    @SuppressWarnings({"unchecked"})
+    public Ingredient ingredient(Object... values) {
+        int count = values.length;
+        if (count == 0) {
+            return Ingredient.of();
+        }
 
-    private static IllegalArgumentException nonIngredientArgument(Object item) {
-        return new IllegalArgumentException("Argument " + item + " is not instance of Ingredient, TagKey, or ItemLike");
+        // Single input special cases - skip CompoundIngredient when possible
+        if (count == 1) {
+            Object value = values[0];
+            return switch (value) {
+                case ItemLike itemLike -> Ingredient.of(itemLike);
+                case Supplier<?> supplier -> Ingredient.of((ItemLike) supplier.get());
+                case Holder<?> holder -> Ingredient.of(HolderSet.direct((Holder<Item>) holder));
+                case HolderSet<?> holderSet -> Ingredient.of((HolderSet<Item>) holderSet);
+                case TagKey<?> tagKey -> ingredient((TagKey<Item>) tagKey);
+                case Ingredient ingredient -> ingredient;
+                default ->
+                        throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass().getName());
+            };
+        }
+
+        // Categorize values into groups
+        List<Holder<Item>> holders = new ArrayList<>();
+        List<TagKey<Item>> tags = new ArrayList<>();
+        List<HolderSet<Item>> holderSets = new ArrayList<>();
+        List<Ingredient> ingredients = new ArrayList<>();
+
+        for (Object value : values) {
+            switch (value) {
+                case ItemLike itemLike -> holders.add(BuiltInRegistries.ITEM.wrapAsHolder(itemLike.asItem()));
+                case Supplier<?> supplier ->
+                        holders.add(BuiltInRegistries.ITEM.wrapAsHolder(((ItemLike) supplier.get()).asItem()));
+                case Holder<?> holder -> holders.add((Holder<Item>) holder);
+                case HolderSet<?> holderSet -> holderSets.add((HolderSet<Item>) holderSet);
+                case TagKey<?> tagKey -> tags.add((TagKey<Item>) tagKey);
+                case Ingredient ingredient -> ingredients.add(ingredient);
+                default ->
+                        throw new IllegalArgumentException("Invalid Ingredient value: " + value.getClass().getName());
+            }
+        }
+
+        // If only holders (from ItemLike, Supplier, or Holder), produce a single simple ingredient
+        if (tags.isEmpty() && holderSets.isEmpty() && ingredients.isEmpty()) {
+            return Ingredient.of(HolderSet.direct(holders));
+        }
+
+        // Need CompoundIngredient - combine holders into one ingredient, then add each tag/holderset/ingredient separately
+        List<Ingredient> parts = new ArrayList<>();
+
+        if (!holders.isEmpty()) {
+            parts.add(Ingredient.of(HolderSet.direct(holders)));
+        }
+        for (TagKey<Item> tag : tags) {
+            parts.add(ingredient(tag));
+        }
+        for (HolderSet<Item> holderSet : holderSets) {
+            parts.add(Ingredient.of(holderSet));
+        }
+        parts.addAll(ingredients);
+
+        return new CompoundIngredient(parts).toVanilla();
     }
 
     /**
@@ -964,30 +1063,92 @@ public class MKRecipeProvider extends RecipeProvider {
             return new Advancement.Builder();
         }
 
-        void accept(ResourceLocation id, Recipe<?> recipe);
+        void accept(ResourceKey<Recipe<?>> key, Recipe<?> recipe);
 
         @Override
-        default void accept(ResourceLocation id, Recipe<?> recipe, @Nullable AdvancementHolder advancementHolder, ICondition... conditions) {
-            accept(id, recipe);
+        default void accept(ResourceKey<Recipe<?>> key, Recipe<?> recipe, @Nullable AdvancementHolder advancementHolder, ICondition... conditions) {
+            accept(key, recipe);
         }
     }
 
-    static {
-        MethodHandles.Lookup lookup = MethodHandles.lookup();
-        VarHandle shapeless;
-        VarHandle shaped;
-        VarHandle shapedKeys;
+    public static class Runner implements DataProvider {
+        private final PackOutput packOutput;
+        private final CompletableFuture<HolderLookup.Provider> registries;
+        private final String modid;
+        private final BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes;
 
-        try {
-            shapeless = MethodHandles.privateLookupIn(ShapelessRecipeBuilder.class, lookup).findVarHandle(ShapelessRecipeBuilder.class, "criteria", Map.class);
-            shaped = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "criteria", Map.class);
-            shapedKeys = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "key", Map.class);
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            throw new RuntimeException(e);
+        public Runner(PackOutput packOutput, CompletableFuture<HolderLookup.Provider> registries, String modid, BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
+            this.packOutput = packOutput;
+            this.registries = registries;
+            this.modid = modid;
+            this.addRecipes = addRecipes;
         }
 
-        SHAPELESS_CRITERIA = shapeless;
-        SHAPED_CRITERIA = shaped;
-        SHAPED_KEYS = shapedKeys;
+        @Override
+        public CompletableFuture<?> run(CachedOutput output) {
+            return this.registries
+                    .thenCompose(provider -> {
+                        PackOutput.PathProvider recipePathProvider = this.packOutput.createRegistryElementsPathProvider(Registries.RECIPE);
+                        PackOutput.PathProvider advancementPathProvider = this.packOutput.createRegistryElementsPathProvider(Registries.ADVANCEMENT);
+                        Set<ResourceKey<Recipe<?>>> set = Sets.newHashSet();
+                        List<CompletableFuture<?>> list = new ArrayList<>();
+                        RecipeOutput recipeOutput = new RecipeOutput() {
+                            @Override
+                            public void accept(ResourceKey<Recipe<?>> recipeKey, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+                                if (!set.add(recipeKey)) {
+                                    throw new IllegalStateException("Duplicate recipe " + recipeKey.location());
+                                } else {
+                                    this.saveRecipe(recipeKey, recipe, conditions);
+                                    if (advancement != null) {
+                                        this.saveAdvancement(advancement, conditions);
+                                    }
+                                }
+                            }
+
+                            @SuppressWarnings("removal")
+                            @Override
+                            public Advancement.Builder advancement() {
+                                return Advancement.Builder.recipeAdvancement().parent(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
+                            }
+
+                            @Override
+                            public void includeRootAdvancement() {
+                                AdvancementHolder advancementholder = Advancement.Builder.recipeAdvancement()
+                                        .addCriterion("impossible", CriteriaTriggers.IMPOSSIBLE.createCriterion(new ImpossibleTrigger.TriggerInstance()))
+                                        .build(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
+                                saveAdvancement(advancementholder);
+                            }
+
+                            private void saveRecipe(ResourceKey<Recipe<?>> recipeKey, Recipe<?> recipe) {
+                                saveRecipe(recipeKey, recipe, new ICondition[0]);
+                            }
+
+                            private void saveRecipe(ResourceKey<Recipe<?>> recipeKey, Recipe<?> recipe, ICondition... conditions) {
+                                list.add(
+                                        DataProvider.saveStable(output, provider, Recipe.CONDITIONAL_CODEC, Optional.of(new net.neoforged.neoforge.common.conditions.WithConditions<>(recipe, conditions)), recipePathProvider.json(recipeKey.location()))
+                                );
+                            }
+
+                            private void saveAdvancement(AdvancementHolder advancement) {
+                                saveAdvancement(advancement, new ICondition[0]);
+                            }
+
+                            private void saveAdvancement(AdvancementHolder advancement, ICondition... conditions) {
+                                list.add(
+                                        DataProvider.saveStable(
+                                                output, provider, Advancement.CONDITIONAL_CODEC, Optional.of(new net.neoforged.neoforge.common.conditions.WithConditions<>(advancement.value(), conditions)), advancementPathProvider.json(advancement.id())
+                                        )
+                                );
+                            }
+                        };
+                        new MKRecipeProvider(recipeOutput, provider, this.modid, this.addRecipes).buildRecipes();
+                        return CompletableFuture.allOf(list.toArray(CompletableFuture[]::new));
+                    });
+        }
+
+        @Override
+        public String getName() {
+            return "ModKit Recipes for mod '" + this.modid + "'";
+        }
     }
 }

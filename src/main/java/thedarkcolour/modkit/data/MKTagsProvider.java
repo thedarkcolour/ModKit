@@ -52,17 +52,25 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
     private static final Function<Block, ResourceKey<Block>> BLOCK_KEY_GETTER;
     private static final Function<GameEvent, ResourceKey<GameEvent>> GAME_EVENT_KEY_GETTER;
     private static final Function<Fluid, ResourceKey<Fluid>> FLUID_KEY_GETTER;
+
+    static {
+        ENTITY_TYPE_KEY_GETTER = entityType -> entityType.builtInRegistryHolder().key();
+        ITEM_KEY_GETTER = item -> item.builtInRegistryHolder().key();
+        BLOCK_KEY_GETTER = block -> block.builtInRegistryHolder().key();
+        GAME_EVENT_KEY_GETTER = gameEvent -> BuiltInRegistries.GAME_EVENT.getResourceKey(gameEvent).get();
+        FLUID_KEY_GETTER = fluid -> fluid.builtInRegistryHolder().key();
+    }
+
     private final Function<T, ResourceKey<T>> keyGetter;
     private final BiConsumer<MKTagsProvider<T>, HolderLookup.Provider> addTags;
     private final Logger logger;
-
     // only used for ITEMS registry
     private final Lazy<CompletableFuture<TagLookup<Block>>> blockTags;
     private final Map<TagKey<Block>, TagKey<Item>> tagsToCopy;
 
     @SuppressWarnings("unchecked")
     protected MKTagsProvider(DataHelper helper, ResourceKey<? extends Registry<T>> registry, BiConsumer<MKTagsProvider<T>, HolderLookup.Provider> addTags) {
-        super(helper.event.getGenerator().getPackOutput(), registry, helper.event.getLookupProvider(), helper.modid, helper.event.getExistingFileHelper());
+        super(helper.event.getGenerator().getPackOutput(), registry, helper.event.getLookupProvider(), helper.modid);
 
         this.keyGetter = chooseKeyGetter(registry);
         this.addTags = addTags;
@@ -78,14 +86,39 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         });
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static <T> Function<T, ResourceKey<T>> chooseKeyGetter(ResourceKey<? extends Registry<T>> registry) {
+        Function keyGetter;
+
+        if (registry.equals(Registries.ENTITY_TYPE)) {
+            keyGetter = ENTITY_TYPE_KEY_GETTER;
+        } else if (registry.equals(Registries.BLOCK)) {
+            keyGetter = BLOCK_KEY_GETTER;
+        } else if (registry.equals(Registries.ITEM)) {
+            keyGetter = ITEM_KEY_GETTER;
+        } else if (registry.equals(Registries.FLUID)) {
+            keyGetter = FLUID_KEY_GETTER;
+        } else if (registry.equals(Registries.GAME_EVENT)) {
+            keyGetter = GAME_EVENT_KEY_GETTER;
+        } else {
+            keyGetter = registryKeyGetter(registry);
+        }
+
+        return keyGetter;
+    }
+
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    private static <T> Function<T, ResourceKey<T>> registryKeyGetter(ResourceKey<? extends Registry<T>> registry) {
+        return obj -> RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).lookupOrThrow(registry).getResourceKey(obj).get();
+    }
+
     @Override
     protected void addTags(HolderLookup.Provider lookup) {
         this.addTags.accept(this, lookup);
     }
 
-    @Override
     public DirectTagAppender<T> tag(TagKey<T> tag) {
-        var builder = this.getOrCreateRawBuilder(tag);
+        var builder = getOrCreateRawBuilder(tag);
         return new DirectTagAppender<>(builder, this.keyGetter, this.modId);
     }
 
@@ -131,39 +164,5 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         } else {
             return super.createContentsProvider();
         }
-    }
-
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private static <T> Function<T, ResourceKey<T>> chooseKeyGetter(ResourceKey<? extends Registry<T>> registry) {
-        Function keyGetter;
-
-        if (registry.equals(Registries.ENTITY_TYPE)) {
-            keyGetter = ENTITY_TYPE_KEY_GETTER;
-        } else if (registry.equals(Registries.BLOCK)) {
-            keyGetter = BLOCK_KEY_GETTER;
-        } else if (registry.equals(Registries.ITEM)) {
-            keyGetter = ITEM_KEY_GETTER;
-        } else if (registry.equals(Registries.FLUID)) {
-            keyGetter = FLUID_KEY_GETTER;
-        } else if (registry.equals(Registries.GAME_EVENT)) {
-            keyGetter = GAME_EVENT_KEY_GETTER;
-        } else {
-            keyGetter = registryKeyGetter(registry);
-        }
-
-        return keyGetter;
-    }
-
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
-    private static <T> Function<T, ResourceKey<T>> registryKeyGetter(ResourceKey<? extends Registry<T>> registry) {
-        return obj -> RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registry).getResourceKey(obj).get();
-    }
-
-    static {
-        ENTITY_TYPE_KEY_GETTER = entityType -> entityType.builtInRegistryHolder().key();
-        ITEM_KEY_GETTER = item -> item.builtInRegistryHolder().key();
-        BLOCK_KEY_GETTER = block -> block.builtInRegistryHolder().key();
-        GAME_EVENT_KEY_GETTER = gameEvent -> BuiltInRegistries.GAME_EVENT.getResourceKey(gameEvent).get();
-        FLUID_KEY_GETTER = fluid -> fluid.builtInRegistryHolder().key();
     }
 }

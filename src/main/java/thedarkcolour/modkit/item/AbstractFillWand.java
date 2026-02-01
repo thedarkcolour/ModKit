@@ -23,13 +23,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -37,8 +37,8 @@ import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.ModKit;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public abstract class AbstractFillWand extends Item {
     protected final Map<Player, Map<BlockPos, BlockState>> undoMap = new HashMap<>();
@@ -83,12 +83,12 @@ public abstract class AbstractFillWand extends Item {
     }
 
     @Override
-    public UseAnim getUseAnimation(ItemStack stack) {
-        return UseAnim.BOW;
+    public ItemUseAnimation getUseAnimation(ItemStack stack) {
+        return ItemUseAnimation.BOW;
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+    public InteractionResult use(Level level, Player player, InteractionHand hand) {
         if (!level.isClientSide) {
             if (player.isShiftKeyDown()) {
                 player.getItemInHand(hand).remove(ModKit.START_POS_COMPONENT.get());
@@ -99,7 +99,7 @@ public abstract class AbstractFillWand extends Item {
             }
         }
 
-        return InteractionResultHolder.pass(player.getItemInHand(hand));
+        return InteractionResult.PASS;
     }
 
     @Override
@@ -138,18 +138,19 @@ public abstract class AbstractFillWand extends Item {
         return stack;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag advanced) {
+    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay tooltipDisplay, Consumer<Component> tooltipAdder, TooltipFlag flag) {
         var startPos = stack.get(ModKit.START_POS_COMPONENT.get());
         if (startPos != null) {
-            tooltip.add(Component.literal("Start Position: (" + startPos.getX() + ", " + startPos.getY() + ", " + startPos.getZ() + ")"));
+            tooltipAdder.accept(Component.literal("Start Position: (" + startPos.getX() + ", " + startPos.getY() + ", " + startPos.getZ() + ")"));
         } else {
-            tooltip.add(Component.literal("Tip: Hold sneak click in the air to undo last operation").withStyle(ChatFormatting.DARK_GRAY));
+            tooltipAdder.accept(Component.literal("Tip: Hold sneak click in the air to undo last operation").withStyle(ChatFormatting.DARK_GRAY));
         }
     }
 
     @Override
     public Component getName(ItemStack stack) {
-        return stack.get(ModKit.START_POS_COMPONENT.get()) == null ? super.getName(stack) : Component.translatable(this.getDescriptionId(stack)).append("*");
+        return stack.get(ModKit.START_POS_COMPONENT.get()) == null ? super.getName(stack) : super.getName(stack).copy().append("*");
     }
 }

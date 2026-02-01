@@ -18,21 +18,15 @@ package thedarkcolour.modkit.data.recipe;
 
 import net.minecraft.core.component.DataComponentType;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 // Do not use outside of data gen code, ModKit code does not ship with your mod
 // A typesafe alternative to Map<DataComponentType<?>, ?>
 public class ItemDataMap {
     @SuppressWarnings("rawtypes")
     private final Map<DataComponentType, Entry<?>> entries = new HashMap<>();
-
-    public <T> void put(DataComponentType<T> type, T value) {
-        entries.put(type, new Entry<>(type, value));
-    }
-
-    public Collection<Entry<?>> entrySet() {
-        return entries.values();
-    }
 
     public static ItemDataMap of() {
         return new ItemDataMap();
@@ -78,5 +72,14 @@ public class ItemDataMap {
         return map;
     }
 
-    public record Entry<T>(DataComponentType<T> type, T value) {}
+    public <T> void put(DataComponentType<T> type, T value) {
+        entries.put(type, new Entry<>(type, value));
+    }
+
+    public Collection<Entry<?>> entrySet() {
+        return entries.values();
+    }
+
+    public record Entry<T>(DataComponentType<T> type, T value) {
+    }
 }

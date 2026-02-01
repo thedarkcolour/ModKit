@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 public class MKUtils {
     // only works for vanilla registries
     public static <T> void forModRegistry(ResourceKey<? extends Registry<T>> registryKey, String modid, BiConsumer<ResourceLocation, T> consumer) {
-        forModRegistry(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).registryOrThrow(registryKey), modid, consumer);
+        forModRegistry(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).lookupOrThrow(registryKey), modid, consumer);
     }
 
     public static <T> void forModRegistry(Registry<T> registry, String modid, BiConsumer<ResourceLocation, T> consumer) {

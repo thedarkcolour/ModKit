@@ -24,14 +24,19 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-
 import org.jetbrains.annotations.Nullable;
 import thedarkcolour.modkit.ModKit;
 import thedarkcolour.modkit.blockentity.InfinitePowerBlockEntity;
 
 public class InfinitePowerBlock extends Block implements EntityBlock {
-    public InfinitePowerBlock() {
-        super(Properties.of());
+    public InfinitePowerBlock(Properties properties) {
+        super(properties);
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    protected static <E extends BlockEntity, A extends BlockEntity> BlockEntityTicker<A> createTickerHelper(BlockEntityType<A> type, BlockEntityType<E> expected, BlockEntityTicker<? super E> ticker) {
+        return expected == type ? (BlockEntityTicker<A>) ticker : null;
     }
 
     @Override
@@ -42,12 +47,6 @@ public class InfinitePowerBlock extends Block implements EntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide ? null : createTickerHelper(type, ModKit.INFINITE_POWER_TYPE.get(), InfinitePowerBlockEntity::tick);
-    }
-
-    @Nullable
-    @SuppressWarnings("unchecked")
-    protected static <E extends BlockEntity, A extends BlockEntity> BlockEntityTicker<A> createTickerHelper(BlockEntityType<A> type, BlockEntityType<E> expected, BlockEntityTicker<? super E> ticker) {
-        return expected == type ? (BlockEntityTicker<A>) ticker : null;
+        return level.isClientSide ? null : createTickerHelper(type, ModKit.INFINITE_POWER_TYPE.get(), (level1, pos, state1, tile) -> InfinitePowerBlockEntity.tick(level1, pos));
     }
 }

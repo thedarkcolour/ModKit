@@ -26,7 +26,7 @@ import thedarkcolour.modkit.data.MKEnglishProvider;
  * <a href="https://github.com/thedarkcolour/ModKit/tree/1.21-neoforge/src/test/java/thedarkcolour/testmod">GitHub</a>
  */
 final class ModKitDataGen {
-    static void gatherData(GatherDataEvent event) {
+    static void gatherData(GatherDataEvent.Client event) {
         // Instead of manually adding data providers to the event, use the IDataHelper class
         var dataHelper = new DataHelper(ModKit.ID, event);
         dataHelper.createEnglish(true, ModKitDataGen::addNames);
