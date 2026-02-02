@@ -18,7 +18,10 @@ package thedarkcolour.modkit.data;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.minecraft.client.data.models.model.ItemModelUtils;
 import net.minecraft.client.data.models.model.ModelInstance;
+import net.minecraft.client.renderer.item.ClientItem;
+import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -57,6 +60,7 @@ public class MKItemModelProvider implements DataProvider {
     private final Consumer<MKItemModelProvider> addItemModels;
 
     private final Map<ResourceLocation, ModelInstance> models = new HashMap<>();
+    private final Map<Item, ItemModel.Unbaked> itemDefinitions = new HashMap<>();
     private final Set<ResourceLocation> excluded = new HashSet<>();
 
     @ApiStatus.Internal
@@ -131,6 +135,7 @@ public class MKItemModelProvider implements DataProvider {
         };
 
         this.models.put(modelLoc, model);
+        registerItemDefinition(itemId, modelLoc);
     }
 
     /**
@@ -154,6 +159,7 @@ public class MKItemModelProvider implements DataProvider {
         };
 
         this.models.put(modelLoc, model);
+        registerItemDefinition(itemId, modelLoc);
     }
 
     /**
@@ -175,7 +181,8 @@ public class MKItemModelProvider implements DataProvider {
             return json;
         };
 
-        models.put(modelLoc, model);
+        this.models.put(modelLoc, model);
+        registerItemDefinition(itemId, modelLoc);
     }
 
     /**
@@ -197,7 +204,26 @@ public class MKItemModelProvider implements DataProvider {
             return json;
         };
 
-        models.put(modelLoc, model);
+        this.models.put(modelLoc, model);
+        registerItemDefinition(itemId, modelLoc);
+    }
+
+    /**
+     * Registers a custom item definition for the given item.
+     * Use {@link ItemModelUtils} to create the model (e.g., plainModel, tintedModel, conditional, select, etc.).
+     *
+     * @param item  The item to register the definition for
+     * @param model The unbaked item model definition
+     */
+    public void itemDefinition(ItemLike item, ItemModel.Unbaked model) {
+        this.itemDefinitions.put(item.asItem(), model);
+    }
+
+    private void registerItemDefinition(ResourceLocation itemId, ResourceLocation modelLoc) {
+        Item item = BuiltInRegistries.ITEM.getValue(itemId);
+        if (item != Items.AIR) {
+            this.itemDefinitions.put(item, ItemModelUtils.plainModel(modelLoc));
+        }
     }
 
     private ResourceLocation itemModelLocation(ResourceLocation itemId) {
@@ -215,6 +241,7 @@ public class MKItemModelProvider implements DataProvider {
     @Override
     public CompletableFuture<?> run(CachedOutput cache) {
         models.clear();
+        itemDefinitions.clear();
         excluded.clear();
 
         // Auto-generate models based on settings
@@ -247,26 +274,48 @@ public class MKItemModelProvider implements DataProvider {
             addItemModels.accept(this);
         }
 
-        // Remove excluded models
+        // Remove excluded models and item definitions
         for (ResourceLocation exclusion : excluded) {
             models.remove(exclusion);
+            // Also remove item definition for excluded items
+            Item excludedItem = BuiltInRegistries.ITEM.getValue(
+                    ResourceLocation.fromNamespaceAndPath(exclusion.getNamespace(), exclusion.getPath().replace("item/", ""))
+            );
+            if (excludedItem != null) {
+                itemDefinitions.remove(excludedItem);
+            }
         }
 
-        // Save all models
         Path basePath = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK);
-        CompletableFuture<?>[] futures = new CompletableFuture<?>[models.size()];
-        int i = 0;
 
+        // Save all item models
+        CompletableFuture<?>[] modelFutures = new CompletableFuture<?>[models.size()];
+        int i = 0;
         for (var entry : models.entrySet()) {
             ResourceLocation modelLoc = entry.getKey();
             Path outputPath = basePath.resolve(modelLoc.getNamespace())
                     .resolve("models")
                     .resolve(modelLoc.getPath() + ".json");
             JsonElement json = entry.getValue().get();
-            futures[i++] = DataProvider.saveStable(cache, json, outputPath);
+            modelFutures[i++] = DataProvider.saveStable(cache, json, outputPath);
         }
 
-        return CompletableFuture.allOf(futures);
+        // Save all item definitions
+        CompletableFuture<?> itemDefinitionsFuture = DataProvider.saveAll(
+                cache,
+                ClientItem.CODEC,
+                item -> basePath.resolve(item.builtInRegistryHolder().key().location().getNamespace())
+                        .resolve("items")
+                        .resolve(item.builtInRegistryHolder().key().location().getPath() + ".json"),
+                itemDefinitions.entrySet().stream().collect(
+                        java.util.stream.Collectors.toMap(
+                                Map.Entry::getKey,
+                                e -> new ClientItem(e.getValue(), ClientItem.Properties.DEFAULT)
+                        )
+                )
+        );
+
+        return CompletableFuture.allOf(modelFutures).thenCompose(v -> itemDefinitionsFuture);
     }
 
     @Override
