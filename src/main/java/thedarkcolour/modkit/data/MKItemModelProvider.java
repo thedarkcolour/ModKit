@@ -83,6 +83,10 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
         excluded.add(extendWithFolder(Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item.asItem()))));
     }
 
+    public void exclude(ResourceLocation id) {
+        excluded.add(extendWithFolder(id));
+    }
+
     public SafeItemModelBuilder generic2d(RegistryObject<? extends ItemLike> supplier) {
         // Don't use the registry object id because item id may be different
         return generic2d(supplier.get());
@@ -169,7 +173,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
 
         if (generate3dBlockItems || generate2dItems || generateSpawnEggs) {
             MKUtils.forModRegistry(Registries.ITEM, modid, (id, item) -> {
-                if (excluded.contains(id)) return;
+                if (excluded.contains(id) || excluded.contains(extendWithFolder(id))) return;
 
                 if (generate3dBlockItems && item instanceof BlockItem) {
                     generic3d(id);
