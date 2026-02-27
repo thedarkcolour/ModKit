@@ -19,8 +19,8 @@ package thedarkcolour.modkit;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.IModFileInfo;
 import net.neoforged.neoforgespi.language.IModInfo;
@@ -32,13 +32,13 @@ import java.util.function.Consumer;
 @ApiStatus.Internal
 public class MKUtils {
     // only works for vanilla registries
-    public static <T> void forModRegistry(ResourceKey<? extends Registry<T>> registryKey, String modid, BiConsumer<ResourceLocation, T> consumer) {
+    public static <T> void forModRegistry(ResourceKey<? extends Registry<T>> registryKey, String modid, BiConsumer<Identifier, T> consumer) {
         forModRegistry(RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY).lookupOrThrow(registryKey), modid, consumer);
     }
 
-    public static <T> void forModRegistry(Registry<T> registry, String modid, BiConsumer<ResourceLocation, T> consumer) {
+    public static <T> void forModRegistry(Registry<T> registry, String modid, BiConsumer<Identifier, T> consumer) {
         for (var entry : registry.entrySet()) {
-            var id = entry.getKey().location();
+            var id = entry.getKey().identifier();
 
             if (id.getNamespace().equals(modid)) {
                 consumer.accept(id, entry.getValue());

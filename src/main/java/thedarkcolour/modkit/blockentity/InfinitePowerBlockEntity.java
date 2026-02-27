@@ -35,7 +35,7 @@ public class InfinitePowerBlockEntity extends BlockEntity implements IEnergyStor
             Direction.stream().forEach(direction -> {
                 BlockPos adjacentPos = pos.relative(direction);
 
-                IEnergyStorage energy = level.getCapability(Capabilities.EnergyStorage.BLOCK, adjacentPos, direction.getOpposite());
+                IEnergyStorage energy = level.getCapability(Capabilities.Energy.BLOCK, adjacentPos, direction.getOpposite());
                 if (energy != null) {
                     energy.receiveEnergy(Integer.MAX_VALUE, false);
                 }

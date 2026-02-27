@@ -25,7 +25,7 @@ import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.advancements.Criterion;
-import net.minecraft.advancements.critereon.*;
+import net.minecraft.advancements.criterion.*;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
@@ -36,7 +36,7 @@ import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.*;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -158,8 +158,8 @@ public class MKRecipeProvider extends RecipeProvider {
      * @return The registry name/ID of the given item
      */
     @SuppressWarnings("deprecation")
-    public static ResourceLocation id(ItemLike item) {
-        return item.asItem().builtInRegistryHolder().key().location();
+    public static Identifier id(ItemLike item) {
+        return item.asItem().builtInRegistryHolder().key().identifier();
     }
 
     private static <T> T unlockedBy(T recipeBuilder, Criterion<?> criterion) {
@@ -213,7 +213,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void conditional(String recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
-        conditional(ResourceLocation.fromNamespaceAndPath(this.modid, recipeId), conditions, addRecipes);
+        conditional(Identifier.fromNamespaceAndPath(this.modid, recipeId), conditions, addRecipes);
     }
 
     /**
@@ -223,7 +223,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param conditions The list of conditions used for all recipe(s) added in addRecipes
      * @param addRecipes Add recipe(s) to the conditional recipe. Make sure you are using the Consumer from this lambda!
      */
-    public void conditional(ResourceLocation recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
+    public void conditional(Identifier recipeId, List<ICondition> conditions, Consumer<RecipeOutput> addRecipes) {
         Preconditions.checkNotNull(this.output);
         Preconditions.checkArgument(!conditions.isEmpty(), "Cannot add a recipe with no conditions.");
 
@@ -272,7 +272,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param renaming The function responsible for renaming the recipes.
      * @param runnable Add your recipes here. You must use the recipe writer passed here INSTEAD of the original recipe writer variable.
      */
-    public void renameRecipes(UnaryOperator<ResourceLocation> renaming, Consumer<RecipeOutput> runnable) {
+    public void renameRecipes(UnaryOperator<Identifier> renaming, Consumer<RecipeOutput> runnable) {
         Preconditions.checkNotNull(this.output);
         RecipeOutput oldWriter = this.output;
 
@@ -289,7 +289,7 @@ public class MKRecipeProvider extends RecipeProvider {
 
             @Override
             public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
-                oldWriter.accept(createRecipeKey(renaming.apply(id.location())), recipe, advancement, conditions);
+                oldWriter.accept(createRecipeKey(renaming.apply(id.identifier())), recipe, advancement, conditions);
             }
         }, runnable);
     }
@@ -341,7 +341,7 @@ public class MKRecipeProvider extends RecipeProvider {
         builder.save(this.output, id);
     }
 
-    public ResourceLocation defaultRecipeId(ItemLike result) {
+    public Identifier defaultRecipeId(ItemLike result) {
         return createRecipeId(null, result);
     }
 
@@ -353,15 +353,15 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param result   The resulting item of the crafting recipe, used only when recipeId is null.
      * @return An ID to use for a newly generated recipe
      */
-    public ResourceLocation createRecipeId(@Nullable String recipeId, ItemLike result) {
+    public Identifier createRecipeId(@Nullable String recipeId, ItemLike result) {
         if (recipeId != null) {
             if (recipeId.contains(":")) {
-                return ResourceLocation.parse(recipeId);
+                return Identifier.parse(recipeId);
             } else {
-                return ResourceLocation.fromNamespaceAndPath(this.modid, recipeId);
+                return Identifier.fromNamespaceAndPath(this.modid, recipeId);
             }
         } else {
-            return ResourceLocation.fromNamespaceAndPath(this.modid, MKRecipeProvider.path(result));
+            return Identifier.fromNamespaceAndPath(this.modid, MKRecipeProvider.path(result));
         }
     }
 
@@ -369,7 +369,7 @@ public class MKRecipeProvider extends RecipeProvider {
         return ResourceKey.create(Registries.RECIPE, createRecipeId(recipeId, result));
     }
 
-    public ResourceKey<Recipe<?>> createRecipeKey(ResourceLocation recipeId) {
+    public ResourceKey<Recipe<?>> createRecipeKey(Identifier recipeId) {
         return ResourceKey.create(Registries.RECIPE, recipeId);
     }
 
@@ -391,7 +391,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * Overload that accepts an ID path.
      */
     public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
-        shapelessCrafting(ResourceLocation.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
+        shapelessCrafting(Identifier.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
     }
 
     /**
@@ -404,7 +404,7 @@ public class MKRecipeProvider extends RecipeProvider {
     /**
      * Overload that accepts an ID.
      */
-    public void shapelessCrafting(ResourceLocation id, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
+    public void shapelessCrafting(Identifier id, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
         shapelessCrafting(id, category, new ItemStack(result, resultCount), null, ingredients);
     }
 
@@ -426,7 +426,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * Overload that accepts an ID path and recipe group.
      */
     public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
-        shapelessCrafting(ResourceLocation.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
+        shapelessCrafting(Identifier.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
     }
 
     /**
@@ -436,7 +436,7 @@ public class MKRecipeProvider extends RecipeProvider {
         shapelessCrafting(null, category, result, unlockedBy, ingredients);
     }
 
-    public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+    public void shapelessCrafting(@Nullable Identifier id, RecipeCategory category, ItemStack result, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
         shapelessCrafting(id, category, result, null, unlockedBy, ingredients);
     }
 
@@ -453,7 +453,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * helps avoid repetition of the same ingredient several times in the ingredients list.
      * <p>
      * There are many overloads that accept different variations and combinations of these arguments in the same order.
-     * Generally, recipes start with an optional ID (string or ResourceLocation), a category, a result (ItemStack or
+     * Generally, recipes start with an optional ID (string or Identifier), a category, a result (ItemStack or
      * pair of item + count), then an optional group name, an optional unlock criterion.
      * The last argument is always the list of ingredients.
      *
@@ -468,7 +468,7 @@ public class MKRecipeProvider extends RecipeProvider {
      *                                  or if {@code ingredients} exceeds 9 ingredients, including any expanded pairs.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public void shapelessCrafting(@Nullable ResourceLocation id, RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
+    public void shapelessCrafting(@Nullable Identifier id, RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(output);
 
         ShapelessRecipeBuilder shapeless = ShapelessRecipeBuilder.shapeless(this.registries.lookupOrThrow(Registries.ITEM), category, result);
@@ -770,7 +770,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void special(String id, Function<CraftingBookCategory, Recipe<?>> factory) {
-        special(ResourceLocation.fromNamespaceAndPath(this.modid, id), factory);
+        special(Identifier.fromNamespaceAndPath(this.modid, id), factory);
     }
 
     /**
@@ -779,7 +779,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param id      The ID of this recipe.
      * @param factory The factory used to serialize the recipe result.
      */
-    public void special(ResourceLocation id, Function<CraftingBookCategory, Recipe<?>> factory) {
+    public void special(Identifier id, Function<CraftingBookCategory, Recipe<?>> factory) {
         Preconditions.checkNotNull(this.output);
 
         SpecialRecipeBuilder.special(factory).save(this.output, id.toString());
@@ -1096,7 +1096,7 @@ public class MKRecipeProvider extends RecipeProvider {
                             @Override
                             public void accept(ResourceKey<Recipe<?>> recipeKey, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
                                 if (!set.add(recipeKey)) {
-                                    throw new IllegalStateException("Duplicate recipe " + recipeKey.location());
+                                    throw new IllegalStateException("Duplicate recipe " + recipeKey.identifier());
                                 } else {
                                     this.saveRecipe(recipeKey, recipe, conditions);
                                     if (advancement != null) {
@@ -1125,7 +1125,7 @@ public class MKRecipeProvider extends RecipeProvider {
 
                             private void saveRecipe(ResourceKey<Recipe<?>> recipeKey, Recipe<?> recipe, ICondition... conditions) {
                                 list.add(
-                                        DataProvider.saveStable(output, provider, Recipe.CONDITIONAL_CODEC, Optional.of(new net.neoforged.neoforge.common.conditions.WithConditions<>(recipe, conditions)), recipePathProvider.json(recipeKey.location()))
+                                        DataProvider.saveStable(output, provider, Recipe.CONDITIONAL_CODEC, Optional.of(new net.neoforged.neoforge.common.conditions.WithConditions<>(recipe, conditions)), recipePathProvider.json(recipeKey.identifier()))
                                 );
                             }
 

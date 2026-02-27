@@ -17,7 +17,7 @@
 package thedarkcolour.modkit.data;
 
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagBuilder;
 import net.minecraft.tags.TagEntry;
 import net.minecraft.tags.TagKey;
@@ -37,14 +37,14 @@ public class DirectTagAppender<T> {
     }
 
     public final DirectTagAppender<T> add(ResourceKey<T> key) {
-        this.builder.addElement(key.location());
+        this.builder.addElement(key.identifier());
         return this;
     }
 
     @SafeVarargs
     public final DirectTagAppender<T> add(ResourceKey<T>... toAdd) {
         for (ResourceKey<T> resourcekey : toAdd) {
-            this.builder.addElement(resourcekey.location());
+            this.builder.addElement(resourcekey.identifier());
         }
         return this;
     }
@@ -86,7 +86,7 @@ public class DirectTagAppender<T> {
         return this;
     }
 
-    public DirectTagAppender<T> addOptional(ResourceLocation location) {
+    public DirectTagAppender<T> addOptional(Identifier location) {
         this.builder.addOptionalElement(location);
         return this;
     }
@@ -96,7 +96,7 @@ public class DirectTagAppender<T> {
         return this;
     }
 
-    public DirectTagAppender<T> addOptionalTag(ResourceLocation location) {
+    public DirectTagAppender<T> addOptionalTag(Identifier location) {
         this.builder.addOptionalTag(location);
         return this;
     }
@@ -163,7 +163,7 @@ public class DirectTagAppender<T> {
      * @param location The ID of the element to remove
      * @return The builder for chaining
      */
-    public DirectTagAppender<T> remove(final ResourceLocation location) {
+    public DirectTagAppender<T> remove(final Identifier location) {
         this.getInternalBuilder().removeElement(location);
         return this;
     }
@@ -174,9 +174,9 @@ public class DirectTagAppender<T> {
      * @param locations The IDs of the elements to remove
      * @return The builder for chaining
      */
-    public DirectTagAppender<T> remove(final ResourceLocation first, final ResourceLocation... locations) {
+    public DirectTagAppender<T> remove(final Identifier first, final Identifier... locations) {
         this.remove(first);
-        for (ResourceLocation location : locations) {
+        for (Identifier location : locations) {
             this.remove(location);
         }
         return this;
@@ -189,7 +189,7 @@ public class DirectTagAppender<T> {
      * @return The appender for chaining
      */
     public DirectTagAppender<T> remove(final ResourceKey<T> resourceKey) {
-        this.remove(resourceKey.location());
+        this.remove(resourceKey.identifier());
         return this;
     }
 
@@ -201,9 +201,9 @@ public class DirectTagAppender<T> {
      */
     @SafeVarargs
     public final DirectTagAppender<T> remove(final ResourceKey<T> firstResourceKey, final ResourceKey<T>... resourceKeys) {
-        this.remove(firstResourceKey.location());
+        this.remove(firstResourceKey.identifier());
         for (ResourceKey<T> resourceKey : resourceKeys) {
-            this.remove(resourceKey.location());
+            this.remove(resourceKey.identifier());
         }
         return this;
     }

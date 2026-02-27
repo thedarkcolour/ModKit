@@ -23,7 +23,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.tags.TagsProvider;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -123,10 +123,10 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
     }
 
     public DirectTagAppender<T> tag(String id) {
-        return tag(ResourceLocation.parse(id));
+        return tag(Identifier.parse(id));
     }
 
-    public DirectTagAppender<T> tag(ResourceLocation id) {
+    public DirectTagAppender<T> tag(Identifier id) {
         return tag(TagKey.create(this.registryKey, id));
     }
 
@@ -139,7 +139,7 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         if (this.registryKey.equals(Registries.ITEM)) {
             this.tagsToCopy.put(blockTag, itemTag);
         } else {
-            logger.warn("Tried to copy a block tag in a tag provider for registry " + registryKey.location());
+            logger.warn("Tried to copy a block tag in a tag provider for registry " + registryKey.identifier());
         }
     }
 

@@ -16,16 +16,15 @@
 
 package thedarkcolour.modkit;
 
-import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.util.Util;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -52,18 +51,18 @@ public class ModKit {
     public static final Logger LOGGER = LoggerFactory.getLogger(ID);
 
     private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(ID);
-    public static final DeferredBlock<Block> INFINITE_POWER = BLOCKS.registerBlock("infinite_power", InfinitePowerBlock::new, BlockBehaviour.Properties.of());
+    public static final DeferredBlock<Block> INFINITE_POWER = BLOCKS.registerBlock("infinite_power", InfinitePowerBlock::new);
 
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ID);
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<InfinitePowerBlockEntity>> INFINITE_POWER_TYPE = BLOCK_ENTITIES.register("infinite_power", () -> new BlockEntityType<>(InfinitePowerBlockEntity::new, Set.of(INFINITE_POWER.get())));
 
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ID);
-    public static final DeferredItem<BlockItem> INFINITE_POWER_ITEM = ITEMS.registerSimpleBlockItem(INFINITE_POWER, new Item.Properties().rarity(Rarity.EPIC));
-    public static final DeferredItem<Item> FILL_WAND = ITEMS.registerItem("fill_wand", FillWandItem::new, new Item.Properties().stacksTo(1).rarity(Rarity.RARE));
-    public static final DeferredItem<Item> CLEAR_WAND = ITEMS.registerItem("clear_wand", ClearWandItem::new, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
-    public static final DeferredItem<Item> DISTANCE_WAND = ITEMS.registerItem("distance_wand", DistanceWandItem::new, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
-    public static final DeferredItem<Item> CLONE_WAND = ITEMS.registerItem("clone_wand", CloneWandItem::new, new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON));
-    public static final DeferredItem<Item> KILL_WAND = ITEMS.registerItem("kill_wand", KillWandItem::new, new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
+    public static final DeferredItem<BlockItem> INFINITE_POWER_ITEM = ITEMS.registerSimpleBlockItem(INFINITE_POWER, props -> props.rarity(Rarity.EPIC));
+    public static final DeferredItem<Item> FILL_WAND = ITEMS.registerItem("fill_wand", FillWandItem::new, props -> props.stacksTo(1).rarity(Rarity.RARE));
+    public static final DeferredItem<Item> CLEAR_WAND = ITEMS.registerItem("clear_wand", ClearWandItem::new, props -> props.stacksTo(1).rarity(Rarity.EPIC));
+    public static final DeferredItem<Item> DISTANCE_WAND = ITEMS.registerItem("distance_wand", DistanceWandItem::new, props -> props.stacksTo(1).rarity(Rarity.EPIC));
+    public static final DeferredItem<Item> CLONE_WAND = ITEMS.registerItem("clone_wand", CloneWandItem::new, props -> props.stacksTo(1).rarity(Rarity.UNCOMMON));
+    public static final DeferredItem<Item> KILL_WAND = ITEMS.registerItem("kill_wand", KillWandItem::new, props -> props.stacksTo(1).rarity(Rarity.EPIC));
     private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, ID);
     private static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, ID);
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<BlockPos>> START_POS_COMPONENT = DATA_COMPONENTS.registerComponentType("start_pos", builder -> builder.persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC));
@@ -133,7 +132,7 @@ public class ModKit {
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, INFINITE_POWER_TYPE.get(), (power, face) -> power);
+        event.registerBlockEntity(Capabilities.Energy.BLOCK, INFINITE_POWER_TYPE.get(), (power, face) -> power);
     }
 
 

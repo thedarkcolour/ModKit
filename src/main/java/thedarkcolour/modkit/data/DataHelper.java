@@ -195,7 +195,7 @@ public class DataHelper {
      * @return The tag provider, not sure what you'd use this for.
      */
     public <T> MKTagsProvider<T> createTags(ResourceKey<? extends Registry<T>> registry, BiConsumer<MKTagsProvider<T>, HolderLookup.Provider> addTags) {
-        this.checkNotCreated(this.tags.get(registry), "Tags for " + registry.location());
+        this.checkNotCreated(this.tags.get(registry), "Tags for " + registry.identifier());
 
         var provider = new MKTagsProvider<>(this, registry, addTags);
         this.tags.put(registry, provider);

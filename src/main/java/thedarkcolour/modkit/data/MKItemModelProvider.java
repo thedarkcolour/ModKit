@@ -28,7 +28,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.ItemLike;
 import org.jetbrains.annotations.ApiStatus;
@@ -59,9 +59,9 @@ public class MKItemModelProvider implements DataProvider {
     @Nullable
     private final Consumer<MKItemModelProvider> addItemModels;
 
-    private final Map<ResourceLocation, ModelInstance> models = new HashMap<>();
+    private final Map<Identifier, ModelInstance> models = new HashMap<>();
     private final Map<Item, ItemModel.Unbaked> itemDefinitions = new HashMap<>();
-    private final Set<ResourceLocation> excluded = new HashSet<>();
+    private final Set<Identifier> excluded = new HashSet<>();
 
     @ApiStatus.Internal
     public MKItemModelProvider(PackOutput output,
@@ -100,7 +100,7 @@ public class MKItemModelProvider implements DataProvider {
     /**
      * Makes a 2d single layer item like hopper, gold ingot, or redstone dust item models
      */
-    public void generic2d(ResourceLocation itemId) {
+    public void generic2d(Identifier itemId) {
         layer0(itemId, "item/generated");
     }
 
@@ -114,16 +114,16 @@ public class MKItemModelProvider implements DataProvider {
     /**
      * Makes a 2d single layer item with special transformations like the pickaxe or sword models.
      */
-    public void handheld(ResourceLocation itemId) {
+    public void handheld(Identifier itemId) {
         layer0(itemId, "item/handheld");
     }
 
     /**
      * Creates a layer0 item model with the specified parent.
      */
-    public void layer0(ResourceLocation itemId, String parentName) {
-        ResourceLocation modelLoc = itemModelLocation(itemId);
-        ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(itemId.getNamespace(), "item/" + itemId.getPath());
+    public void layer0(Identifier itemId, String parentName) {
+        Identifier modelLoc = itemModelLocation(itemId);
+        Identifier texture = Identifier.fromNamespaceAndPath(itemId.getNamespace(), "item/" + itemId.getPath());
 
         ModelInstance model = () -> {
             JsonObject json = new JsonObject();
@@ -148,9 +148,9 @@ public class MKItemModelProvider implements DataProvider {
     /**
      * Makes a 3d cube of a block for item model (references block model as parent)
      */
-    public void generic3d(ResourceLocation itemId) {
-        ResourceLocation modelLoc = itemModelLocation(itemId);
-        ResourceLocation parent = ResourceLocation.fromNamespaceAndPath(itemId.getNamespace(), "block/" + itemId.getPath());
+    public void generic3d(Identifier itemId) {
+        Identifier modelLoc = itemModelLocation(itemId);
+        Identifier parent = Identifier.fromNamespaceAndPath(itemId.getNamespace(), "block/" + itemId.getPath());
 
         ModelInstance model = () -> {
             JsonObject json = new JsonObject();
@@ -172,8 +172,8 @@ public class MKItemModelProvider implements DataProvider {
     /**
      * Creates a spawn egg item model.
      */
-    public void spawnEgg(ResourceLocation itemId) {
-        ResourceLocation modelLoc = itemModelLocation(itemId);
+    public void spawnEgg(Identifier itemId) {
+        Identifier modelLoc = itemModelLocation(itemId);
 
         ModelInstance model = () -> {
             JsonObject json = new JsonObject();
@@ -188,15 +188,15 @@ public class MKItemModelProvider implements DataProvider {
     /**
      * Creates a simple item model with the given parent.
      */
-    public void withParent(ItemLike item, ResourceLocation parent) {
+    public void withParent(ItemLike item, Identifier parent) {
         withParent(itemId(item), parent);
     }
 
     /**
      * Creates a simple item model with the given parent.
      */
-    public void withParent(ResourceLocation itemId, ResourceLocation parent) {
-        ResourceLocation modelLoc = itemModelLocation(itemId);
+    public void withParent(Identifier itemId, Identifier parent) {
+        Identifier modelLoc = itemModelLocation(itemId);
 
         ModelInstance model = () -> {
             JsonObject json = new JsonObject();
@@ -219,18 +219,18 @@ public class MKItemModelProvider implements DataProvider {
         this.itemDefinitions.put(item.asItem(), model);
     }
 
-    private void registerItemDefinition(ResourceLocation itemId, ResourceLocation modelLoc) {
+    private void registerItemDefinition(Identifier itemId, Identifier modelLoc) {
         Item item = BuiltInRegistries.ITEM.getValue(itemId);
         if (item != Items.AIR) {
             this.itemDefinitions.put(item, ItemModelUtils.plainModel(modelLoc));
         }
     }
 
-    private ResourceLocation itemModelLocation(ResourceLocation itemId) {
-        return ResourceLocation.fromNamespaceAndPath(itemId.getNamespace(), "item/" + itemId.getPath());
+    private Identifier itemModelLocation(Identifier itemId) {
+        return Identifier.fromNamespaceAndPath(itemId.getNamespace(), "item/" + itemId.getPath());
     }
 
-    public ResourceLocation itemId(ItemLike item) {
+    public Identifier itemId(ItemLike item) {
         if (BuiltInRegistries.ITEM.containsValue(item.asItem())) {
             return BuiltInRegistries.ITEM.getKey(item.asItem());
         } else {
@@ -260,7 +260,7 @@ public class MKItemModelProvider implements DataProvider {
                             || item instanceof AxeItem
                             || (item.getDescriptionId().contains("pick") && item.components().has(DataComponents.TOOL))
                     ) {
-                        this.logger.info("Detected item {} as a handheld, autogenerating handheld model (this can be manually overridden)", item.builtInRegistryHolder().key().location());
+                        this.logger.info("Detected item {} as a handheld, autogenerating handheld model (this can be manually overridden)", item.builtInRegistryHolder().key().identifier());
                         handheld(id);
                     } else {
                         generic2d(id);
@@ -275,11 +275,11 @@ public class MKItemModelProvider implements DataProvider {
         }
 
         // Remove excluded models and item definitions
-        for (ResourceLocation exclusion : excluded) {
+        for (Identifier exclusion : excluded) {
             models.remove(exclusion);
             // Also remove item definition for excluded items
             Item excludedItem = BuiltInRegistries.ITEM.getValue(
-                    ResourceLocation.fromNamespaceAndPath(exclusion.getNamespace(), exclusion.getPath().replace("item/", ""))
+                    Identifier.fromNamespaceAndPath(exclusion.getNamespace(), exclusion.getPath().replace("item/", ""))
             );
             if (excludedItem != null) {
                 itemDefinitions.remove(excludedItem);
@@ -292,7 +292,7 @@ public class MKItemModelProvider implements DataProvider {
         CompletableFuture<?>[] modelFutures = new CompletableFuture<?>[models.size()];
         int i = 0;
         for (var entry : models.entrySet()) {
-            ResourceLocation modelLoc = entry.getKey();
+            Identifier modelLoc = entry.getKey();
             Path outputPath = basePath.resolve(modelLoc.getNamespace())
                     .resolve("models")
                     .resolve(modelLoc.getPath() + ".json");
@@ -304,9 +304,9 @@ public class MKItemModelProvider implements DataProvider {
         CompletableFuture<?> itemDefinitionsFuture = DataProvider.saveAll(
                 cache,
                 ClientItem.CODEC,
-                item -> basePath.resolve(item.builtInRegistryHolder().key().location().getNamespace())
+                item -> basePath.resolve(item.builtInRegistryHolder().key().identifier().getNamespace())
                         .resolve("items")
-                        .resolve(item.builtInRegistryHolder().key().location().getPath() + ".json"),
+                        .resolve(item.builtInRegistryHolder().key().identifier().getPath() + ".json"),
                 itemDefinitions.entrySet().stream().collect(
                         java.util.stream.Collectors.toMap(
                                 Map.Entry::getKey,

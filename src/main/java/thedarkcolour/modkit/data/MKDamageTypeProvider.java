@@ -19,7 +19,7 @@ package thedarkcolour.modkit.data;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.damagesource.DamageEffects;
 import net.minecraft.world.damagesource.DamageScaling;
 import net.minecraft.world.damagesource.DamageType;
@@ -32,7 +32,7 @@ import java.util.function.Consumer;
 
 public class MKDamageTypeProvider extends JsonCodecProvider<DamageType> {
     private final Consumer<MKDamageTypeProvider> addTypes;
-    private final HashMap<ResourceLocation, DamageTypeBuilder> types = new HashMap<>();
+    private final HashMap<Identifier, DamageTypeBuilder> types = new HashMap<>();
 
     public MKDamageTypeProvider(PackOutput output, String modid, CompletableFuture<HolderLookup.Provider> lookupProvider, Consumer<MKDamageTypeProvider> addTypes) {
         super(output, PackOutput.Target.DATA_PACK, "damage_type", DamageType.DIRECT_CODEC, lookupProvider, modid);
@@ -40,7 +40,7 @@ public class MKDamageTypeProvider extends JsonCodecProvider<DamageType> {
     }
 
     public DamageTypeBuilder add(ResourceKey<DamageType> type) {
-        return this.types.computeIfAbsent(type.location(), key -> new DamageTypeBuilder(this.modid + '.' + type.location().getPath()));
+        return this.types.computeIfAbsent(type.identifier(), key -> new DamageTypeBuilder(this.modid + '.' + type.identifier().getPath()));
     }
 
     @Override
