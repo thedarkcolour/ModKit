@@ -32,6 +32,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.transfer.energy.InfiniteEnergyHandler;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -132,10 +133,6 @@ public class ModKit {
     }
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
-        event.registerBlockEntity(Capabilities.Energy.BLOCK, INFINITE_POWER_TYPE.get(), (power, face) -> power);
+        event.registerBlockEntity(Capabilities.Energy.BLOCK, INFINITE_POWER_TYPE.get(), (power, face) -> InfiniteEnergyHandler.INSTANCE);
     }
-
-
-
-
 }

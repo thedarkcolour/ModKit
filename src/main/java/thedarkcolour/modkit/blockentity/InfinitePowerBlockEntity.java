@@ -22,54 +22,28 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.energy.IEnergyStorage;
+import net.neoforged.neoforge.transfer.energy.EnergyHandler;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 import thedarkcolour.modkit.ModKit;
 
-public class InfinitePowerBlockEntity extends BlockEntity implements IEnergyStorage {
+public class InfinitePowerBlockEntity extends BlockEntity {
     public InfinitePowerBlockEntity(BlockPos pos, BlockState state) {
         super(ModKit.INFINITE_POWER_TYPE.get(), pos, state);
     }
 
     public static void tick(Level level, BlockPos pos) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             Direction.stream().forEach(direction -> {
                 BlockPos adjacentPos = pos.relative(direction);
 
-                IEnergyStorage energy = level.getCapability(Capabilities.Energy.BLOCK, adjacentPos, direction.getOpposite());
+                EnergyHandler energy = level.getCapability(Capabilities.Energy.BLOCK, adjacentPos, direction.getOpposite());
                 if (energy != null) {
-                    energy.receiveEnergy(Integer.MAX_VALUE, false);
+                    try (var tx = Transaction.openRoot()) {
+                        energy.insert(Integer.MAX_VALUE, tx);
+                        tx.commit();
+                    }
                 }
             });
         }
-    }
-
-    @Override
-    public int receiveEnergy(int i, boolean b) {
-        return 0;
-    }
-
-    @Override
-    public int extractEnergy(int i, boolean b) {
-        return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public int getEnergyStored() {
-        return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public int getMaxEnergyStored() {
-        return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public boolean canExtract() {
-        return true;
-    }
-
-    @Override
-    public boolean canReceive() {
-        return false;
     }
 }

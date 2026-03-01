@@ -31,7 +31,7 @@ public class DistanceWandItem extends Item {
     public InteractionResult useOn(UseOnContext ctx) {
         var level = ctx.getLevel();
 
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             var stack = ctx.getItemInHand();
             var pos = ctx.getClickedPos();
             var player = ctx.getPlayer();

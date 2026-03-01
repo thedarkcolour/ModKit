@@ -15,5 +15,5 @@
  */
 
 @javax.annotation.ParametersAreNonnullByDefault
-@net.minecraft.MethodsReturnNonnullByDefault
+@com.mojang.logging.annotations.MethodsReturnNonnullByDefault
 package thedarkcolour.modkit.blockentity;

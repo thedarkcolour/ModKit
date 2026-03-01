@@ -14,7 +14,7 @@
  * copies or substantial portions of the Software.
  */
 
-@net.minecraft.MethodsReturnNonnullByDefault
-@net.minecraft.FieldsAreNonnullByDefault
+@com.mojang.logging.annotations.MethodsReturnNonnullByDefault
+@com.mojang.logging.annotations.FieldsAreNonnullByDefault
 @javax.annotation.ParametersAreNonnullByDefault
 package thedarkcolour.modkit.data.recipe;

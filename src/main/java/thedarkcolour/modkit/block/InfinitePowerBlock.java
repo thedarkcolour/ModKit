@@ -47,6 +47,6 @@ public class InfinitePowerBlock extends Block implements EntityBlock {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide ? null : createTickerHelper(type, ModKit.INFINITE_POWER_TYPE.get(), (level1, pos, state1, tile) -> InfinitePowerBlockEntity.tick(level1, pos));
+        return level.isClientSide() ? null : createTickerHelper(type, ModKit.INFINITE_POWER_TYPE.get(), (level1, pos, state1, tile) -> InfinitePowerBlockEntity.tick(level1, pos));
     }
 }

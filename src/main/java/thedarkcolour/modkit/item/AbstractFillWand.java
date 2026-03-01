@@ -89,7 +89,7 @@ public abstract class AbstractFillWand extends Item {
 
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             if (player.isShiftKeyDown()) {
                 player.getItemInHand(hand).remove(ModKit.START_POS_COMPONENT.get());
                 player.displayClientMessage(Component.literal("Cleared start position"), true);
@@ -106,7 +106,7 @@ public abstract class AbstractFillWand extends Item {
     public InteractionResult useOn(UseOnContext ctx) {
         var level = ctx.getLevel();
 
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             var stack = ctx.getItemInHand();
             var pos = ctx.getClickedPos();
             var player = ctx.getPlayer();

@@ -144,15 +144,15 @@ public class MKEnglishProvider extends LanguageProvider {
                             }
                         });
                     } catch (IllegalArgumentException e) {
-                        this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registryKey.location());
+                        this.logger.error("No translation key handler registered by mod {} for registry {} (use MKEnglishProvider.addTranslationHandler)", this.modid, registryKey.identifier());
                         continue;
                     }
 
                     if (i.intValue() > 0) {
-                        this.logger.info("Automatically generated {} names for mod {}'s entries in registry {}", i, this.modid, registryKey.location());
+                        this.logger.info("Automatically generated {} names for mod {}'s entries in registry {}", i, this.modid, registryKey.identifier());
                     }
                 } else {
-                    this.logger.error("Failed to fetch registry {} for translation. You will have to translate these entries manually", registryKey.location());
+                    this.logger.error("Failed to fetch registry {} for translation. You will have to translate these entries manually", registryKey.identifier());
                 }
             }
         }
@@ -196,7 +196,7 @@ public class MKEnglishProvider extends LanguageProvider {
      */
     public <T> void addRegistryForAutoTranslation(ResourceKey<? extends Registry<T>> registryKey) {
         if (!this.generateNames) {
-            this.logger.error("Tried to automatically generate English names for registryKey {}, but {} MKEnglishProvider has 'generateNames' set to false!", registryKey.location(), this.modid);
+            this.logger.error("Tried to automatically generate English names for registryKey {}, but {} MKEnglishProvider has 'generateNames' set to false!", registryKey.identifier(), this.modid);
             throw new IllegalStateException("MKEnglishGenerator.generateNames is false");
         } else {
             this.autoTranslatedRegistries.add(registryKey);
