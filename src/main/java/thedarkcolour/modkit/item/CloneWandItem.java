@@ -55,7 +55,7 @@ public class CloneWandItem extends AbstractFillWand {
                 }
 
                 structureMap.put(player, builder.build());
-                player.displayClientMessage(Component.literal(String.format("Saved blocks from (%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
+                player.sendOverlayMessage(Component.literal(String.format("Saved blocks from (%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())));
                 stack.remove(ModKit.START_POS_COMPONENT.get());
             }
         } else {
@@ -73,7 +73,7 @@ public class CloneWandItem extends AbstractFillWand {
 
             undoMap.put(player, builder.build());
             player.getCooldowns().addCooldown(stack, 25);
-            player.displayClientMessage(Component.literal(String.format("Cloned structure anchored at (%d %d %d)", pos.getX(), pos.getY(), pos.getZ())), true);
+            player.sendOverlayMessage(Component.literal(String.format("Cloned structure anchored at (%d %d %d)", pos.getX(), pos.getY(), pos.getZ())));
         }
     }
 }

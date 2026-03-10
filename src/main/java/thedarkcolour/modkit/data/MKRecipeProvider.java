@@ -40,6 +40,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.ItemLike;
@@ -63,8 +64,8 @@ import static net.minecraft.data.recipes.SmithingTransformRecipeBuilder.smithing
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class MKRecipeProvider extends RecipeProvider {
-    private static final VarHandle SHAPELESS_CRITERIA;
-    private static final VarHandle SHAPED_CRITERIA;
+    private static final Function<ShapelessRecipeBuilder, Map<?, ?>> SHAPELESS_CRITERIA;
+    private static final Function<ShapedRecipeBuilder, Map<?, ?>> SHAPED_CRITERIA;
     private static final VarHandle SHAPED_KEYS;
 
     static {
@@ -72,17 +73,19 @@ public class MKRecipeProvider extends RecipeProvider {
         VarHandle shapeless;
         VarHandle shaped;
         VarHandle shapedKeys;
+        VarHandle criteria;
 
         try {
-            shapeless = MethodHandles.privateLookupIn(ShapelessRecipeBuilder.class, lookup).findVarHandle(ShapelessRecipeBuilder.class, "criteria", Map.class);
-            shaped = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "criteria", Map.class);
+            shapeless = MethodHandles.privateLookupIn(ShapelessRecipeBuilder.class, lookup).findVarHandle(ShapelessRecipeBuilder.class, "advancementBuilder", RecipeUnlockAdvancementBuilder.class);
+            shaped = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "advancementBuilder", RecipeUnlockAdvancementBuilder.class);
             shapedKeys = MethodHandles.privateLookupIn(ShapedRecipeBuilder.class, lookup).findVarHandle(ShapedRecipeBuilder.class, "key", Map.class);
+            criteria = MethodHandles.privateLookupIn(RecipeUnlockAdvancementBuilder.class, lookup).findVarHandle(RecipeUnlockAdvancementBuilder.class, "criteria", Map.class);
         } catch (IllegalAccessException | NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
 
-        SHAPELESS_CRITERIA = shapeless;
-        SHAPED_CRITERIA = shaped;
+        SHAPELESS_CRITERIA = builder -> (Map<?, ?>) criteria.get((RecipeUnlockAdvancementBuilder) shapeless.get(builder));
+        SHAPED_CRITERIA = builder -> (Map<?, ?>) criteria.get((RecipeUnlockAdvancementBuilder) shaped.get(builder));
         SHAPED_KEYS = shapedKeys;
     }
 
@@ -134,10 +137,10 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     private static boolean isMissingCriterion(RecipeBuilder builder) {
-        if (builder instanceof ShapelessRecipeBuilder) {
-            return ((Map<?, ?>) SHAPELESS_CRITERIA.get(builder)).isEmpty();
-        } else if (builder instanceof ShapedRecipeBuilder) {
-            return ((Map<?, ?>) SHAPED_CRITERIA.get(builder)).isEmpty();
+        if (builder instanceof ShapelessRecipeBuilder shapeless) {
+            return (SHAPELESS_CRITERIA.apply(shapeless)).isEmpty();
+        } else if (builder instanceof ShapedRecipeBuilder shaped) {
+            return (SHAPED_CRITERIA.apply(shaped)).isEmpty();
         } else {
             throw new IllegalArgumentException("Unable to determine if recipe is missing criterion");
         }
@@ -329,14 +332,14 @@ public class MKRecipeProvider extends RecipeProvider {
     public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Consumer<ShapedRecipeBuilder> recipe) {
         Preconditions.checkNotNull(this.output);
 
-        ItemStack resultStack = newItemStack(result, resultCount, resultData);
-        ShapedRecipeBuilder builder = ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), category, resultStack);
+        var resultTemplate = ItemStackTemplate.fromNonEmptyStack(newItemStack(result, resultCount, resultData));
+        ShapedRecipeBuilder builder = ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), category, resultTemplate);
         recipe.accept(builder);
         if (isMissingCriterion(builder)) {
             attemptAutoCriterion(builder);
         }
 
-        ResourceKey<Recipe<?>> id = createRecipeKey(recipeId, builder.getResult());
+        ResourceKey<Recipe<?>> id = createRecipeKey(recipeId, result);
 
         builder.save(this.output, id);
     }
@@ -471,7 +474,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void shapelessCrafting(@Nullable Identifier id, RecipeCategory category, ItemStack result, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, Object... ingredients) {
         Preconditions.checkNotNull(output);
 
-        ShapelessRecipeBuilder shapeless = ShapelessRecipeBuilder.shapeless(this.registries.lookupOrThrow(Registries.ITEM), category, result);
+        ShapelessRecipeBuilder shapeless = ShapelessRecipeBuilder.shapeless(this.registries.lookupOrThrow(Registries.ITEM), category, ItemStackTemplate.fromNonEmptyStack(result));
 
         if (group != null) {
             shapeless.group(group);
@@ -769,7 +772,7 @@ public class MKRecipeProvider extends RecipeProvider {
         slab(result, planks, "wooden_slab");
     }
 
-    public void special(String id, Function<CraftingBookCategory, Recipe<?>> factory) {
+    public void special(String id, Supplier<Recipe<?>> factory) {
         special(Identifier.fromNamespaceAndPath(this.modid, id), factory);
     }
 
@@ -779,7 +782,7 @@ public class MKRecipeProvider extends RecipeProvider {
      * @param id      The ID of this recipe.
      * @param factory The factory used to serialize the recipe result.
      */
-    public void special(Identifier id, Function<CraftingBookCategory, Recipe<?>> factory) {
+    public void special(Identifier id, Supplier<Recipe<?>> factory) {
         Preconditions.checkNotNull(this.output);
 
         SpecialRecipeBuilder.special(factory).save(this.output, id.toString());
@@ -838,7 +841,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void smelting(Ingredient ingredient, ItemLike result, float experience, int duration) {
-        genericCooking(RecipeSerializer.SMELTING_RECIPE, ingredient, result, experience, duration);
+        genericCooking(CookingRecipeType.SMELTING_RECIPE, CookingBookCategory.MISC, ingredient, result, experience, duration);
     }
 
     public void blasting(ItemLike input, ItemLike result, float experience) {
@@ -850,7 +853,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void blasting(Ingredient ingredient, ItemLike result, float experience, int duration) {
-        genericCooking(RecipeSerializer.BLASTING_RECIPE, ingredient, result, experience, duration);
+        genericCooking(CookingRecipeType.BLASTING_RECIPE, CookingBookCategory.MISC, ingredient, result, experience, duration);
     }
 
     public void smoking(ItemLike input, ItemLike result, float experience) {
@@ -862,7 +865,7 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void smoking(Ingredient ingredient, ItemLike result, float experience, int duration) {
-        genericCooking(RecipeSerializer.SMOKING_RECIPE, ingredient, result, experience, duration);
+        genericCooking(CookingRecipeType.SMOKING_RECIPE, CookingBookCategory.FOOD, ingredient, result, experience, duration);
     }
 
     public void campfire(ItemLike input, ItemLike result, float experience) {
@@ -874,27 +877,16 @@ public class MKRecipeProvider extends RecipeProvider {
     }
 
     public void campfire(Ingredient ingredient, ItemLike result, float experience, int duration) {
-        genericCooking(RecipeSerializer.CAMPFIRE_COOKING_RECIPE, ingredient, result, experience, duration);
+        genericCooking(CookingRecipeType.CAMPFIRE_COOKING_RECIPE, CookingBookCategory.FOOD, ingredient, result, experience, duration);
     }
 
-    public void genericCooking(RecipeSerializer<? extends AbstractCookingRecipe> serializer, Ingredient ingredient, ItemLike result, float experience, int duration) {
-        genericCooking(RecipeCategory.MISC, serializer, ingredient, result, experience, duration);
-    }
-
-    public void genericCooking(RecipeCategory category, RecipeSerializer<? extends AbstractCookingRecipe> serializer, Ingredient ingredient, ItemLike result, float experience, int duration) {
+    public <T extends AbstractCookingRecipe> void genericCooking(CookingRecipeType<T> type, CookingBookCategory smeltingCategory, Ingredient ingredient, ItemLike result, float experience, int duration) {
         Preconditions.checkNotNull(this.output);
 
-        String id = path(result);
-        AbstractCookingRecipe.Factory<? extends AbstractCookingRecipe> factory = SmeltingRecipe::new;
-        if (serializer == RecipeSerializer.CAMPFIRE_COOKING_RECIPE) {
-            id += "_from_campfire_cooking";
-        } else if (serializer == RecipeSerializer.BLASTING_RECIPE) {
-            id += "_from_blasting";
-        } else if (serializer == RecipeSerializer.SMOKING_RECIPE) {
-            id += "_from_smoking";
-        }
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        SimpleCookingRecipeBuilder builder = SimpleCookingRecipeBuilder.generic(ingredient, category, result, experience, duration, serializer, (AbstractCookingRecipe.Factory) factory);
+        String id = path(result) + type.idSuffix();
+
+        // we don't need to care about RecipeCategory, it's only used in advancement ID
+        SimpleCookingRecipeBuilder builder = SimpleCookingRecipeBuilder.generic(ingredient, RecipeCategory.MISC, smeltingCategory, result, experience, duration, type.factory());
         unlockedByHaving(builder, ingredient);
         builder.save(this.output, createRecipeKey(id, result.asItem()));
     }
@@ -930,7 +922,7 @@ public class MKRecipeProvider extends RecipeProvider {
             items.add(value.value());
         }
 
-        unlockedByHaving(builder, items.iterator().next());
+        unlockedByHaving(builder, items.getFirst());
         return true;
     }
 

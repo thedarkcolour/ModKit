@@ -27,6 +27,7 @@ import net.minecraft.client.data.models.blockstates.MultiVariantGenerator;
 import net.minecraft.client.data.models.blockstates.PropertyDispatch;
 import net.minecraft.client.data.models.model.*;
 import net.minecraft.client.renderer.block.model.BlockModelDefinition;
+import net.minecraft.client.renderer.block.model.Material;
 import net.minecraft.client.renderer.block.model.VariantMutator;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -143,7 +144,7 @@ public class MKBlockModelProvider implements DataProvider {
      */
     public Identifier cubeAll(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.ALL, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.ALL, new Material(texture));
         ModelTemplates.CUBE_ALL.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -154,8 +155,8 @@ public class MKBlockModelProvider implements DataProvider {
     public Identifier cubeColumn(String name, Identifier side, Identifier end) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.END, end);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.END, new Material(end));
         ModelTemplates.CUBE_COLUMN.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -166,8 +167,8 @@ public class MKBlockModelProvider implements DataProvider {
     public Identifier cubeColumnHorizontal(String name, Identifier side, Identifier end) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.END, end);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.END, new Material(end));
         ModelTemplates.CUBE_COLUMN_HORIZONTAL.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -559,9 +560,9 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier orientable(String name, Identifier side, Identifier front, Identifier top) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.FRONT, front)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.FRONT, new Material(front))
+                .put(TextureSlot.TOP, new Material(top));
         ModelTemplates.CUBE_ORIENTABLE.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -569,9 +570,9 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier stairs(String name, Identifier side, Identifier bottom, Identifier top) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.BOTTOM, bottom)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.BOTTOM, new Material(bottom))
+                .put(TextureSlot.TOP, new Material(top));
         ModelTemplates.STAIRS_STRAIGHT.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -579,9 +580,9 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier stairsInner(String name, Identifier side, Identifier bottom, Identifier top) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.BOTTOM, bottom)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.BOTTOM, new Material(bottom))
+                .put(TextureSlot.TOP, new Material(top));
         ModelTemplates.STAIRS_INNER.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -589,9 +590,9 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier stairsOuter(String name, Identifier side, Identifier bottom, Identifier top) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.BOTTOM, bottom)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.BOTTOM, new Material(bottom))
+                .put(TextureSlot.TOP, new Material(top));
         ModelTemplates.STAIRS_OUTER.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -599,9 +600,9 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier slab(String name, Identifier side, Identifier bottom, Identifier top) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.BOTTOM, bottom)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.BOTTOM, new Material(bottom))
+                .put(TextureSlot.TOP, new Material(top));
         ModelTemplates.SLAB_BOTTOM.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -609,107 +610,107 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier slabTop(String name, Identifier side, Identifier bottom, Identifier top) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.SIDE, side)
-                .put(TextureSlot.BOTTOM, bottom)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.SIDE, new Material(side))
+                .put(TextureSlot.BOTTOM, new Material(bottom))
+                .put(TextureSlot.TOP, new Material(top));
         ModelTemplates.SLAB_TOP.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier button(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.BUTTON.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier buttonPressed(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.BUTTON_PRESSED.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier pressurePlate(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.PRESSURE_PLATE_UP.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier pressurePlateDown(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.PRESSURE_PLATE_DOWN.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier sign(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.PARTICLE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.PARTICLE, new Material(texture));
         ModelTemplates.PARTICLE_ONLY.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier fencePost(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.FENCE_POST.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier fenceSide(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.FENCE_SIDE.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier fenceGate(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.FENCE_GATE_CLOSED.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier fenceGateOpen(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.FENCE_GATE_OPEN.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier fenceGateWall(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.FENCE_GATE_WALL_CLOSED.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier fenceGateWallOpen(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         ModelTemplates.FENCE_GATE_WALL_OPEN.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier wallPost(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.WALL, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.WALL, new Material(texture));
         ModelTemplates.WALL_POST.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier wallSide(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.WALL, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.WALL, new Material(texture));
         ModelTemplates.WALL_LOW_SIDE.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier wallSideTall(String name, Identifier texture) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.WALL, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.WALL, new Material(texture));
         ModelTemplates.WALL_TALL_SIDE.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -749,8 +750,8 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier createDoorModel(String name, Identifier bottom, Identifier top, ModelTemplate template) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.BOTTOM, bottom)
-                .put(TextureSlot.TOP, top);
+                .put(TextureSlot.BOTTOM, new Material(bottom))
+                .put(TextureSlot.TOP, new Material(top));
         template.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -781,7 +782,7 @@ public class MKBlockModelProvider implements DataProvider {
 
     private Identifier createTrapdoorModel(String name, Identifier texture, ModelTemplate template) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, texture);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.TEXTURE, new Material(texture));
         template.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -789,8 +790,8 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier panePost(String name, Identifier pane, Identifier edge) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.PANE, pane)
-                .put(TextureSlot.EDGE, edge);
+                .put(TextureSlot.PANE, new Material(pane))
+                .put(TextureSlot.EDGE, new Material(edge));
         ModelTemplates.STAINED_GLASS_PANE_POST.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -798,8 +799,8 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier paneSide(String name, Identifier pane, Identifier edge) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.PANE, pane)
-                .put(TextureSlot.EDGE, edge);
+                .put(TextureSlot.PANE, new Material(pane))
+                .put(TextureSlot.EDGE, new Material(edge));
         ModelTemplates.STAINED_GLASS_PANE_SIDE.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
@@ -807,22 +808,22 @@ public class MKBlockModelProvider implements DataProvider {
     private Identifier paneSideAlt(String name, Identifier pane, Identifier edge) {
         Identifier modelLoc = modLoc("block/" + name);
         TextureMapping textureMapping = new TextureMapping()
-                .put(TextureSlot.PANE, pane)
-                .put(TextureSlot.EDGE, edge);
+                .put(TextureSlot.PANE, new Material(pane))
+                .put(TextureSlot.EDGE, new Material(edge));
         ModelTemplates.STAINED_GLASS_PANE_SIDE_ALT.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier paneNoSide(String name, Identifier pane) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.PANE, pane);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.PANE, new Material(pane));
         ModelTemplates.STAINED_GLASS_PANE_NOSIDE.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }
 
     private Identifier paneNoSideAlt(String name, Identifier pane) {
         Identifier modelLoc = modLoc("block/" + name);
-        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.PANE, pane);
+        TextureMapping textureMapping = new TextureMapping().put(TextureSlot.PANE, new Material(pane));
         ModelTemplates.STAINED_GLASS_PANE_NOSIDE_ALT.create(modelLoc, textureMapping, this::acceptModel);
         return modelLoc;
     }

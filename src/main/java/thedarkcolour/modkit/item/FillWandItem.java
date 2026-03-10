@@ -44,14 +44,14 @@ public class FillWandItem extends AbstractFillWand {
         if (player.isShiftKeyDown()) {
             var state = level.getBlockState(pos);
             stack.set(ModKit.FILL_BLOCK_COMPONENT, state);
-            player.displayClientMessage(Component.literal("Set block to " + state.getBlock()), true);
+            player.sendOverlayMessage(Component.literal("Set block to " + state.getBlock()));
         } else {
             if (stack.get(ModKit.START_POS_COMPONENT) == null) {
                 saveStartPos(stack, pos, player);
             } else {
                 var savedFillBlock = stack.get(ModKit.FILL_BLOCK_COMPONENT);
                 if (savedFillBlock == null) {
-                    player.displayClientMessage(Component.literal("No filler block (use sneak click on a block)"), true);
+                    player.sendOverlayMessage(Component.literal("No filler block (use sneak click on a block)"));
                 } else {
                     fill(stack, savedFillBlock, pos, level, player);
                     player.getCooldowns().addCooldown(stack, 5);

@@ -44,11 +44,11 @@ public class DistanceWandItem extends Item {
                 var dy = pos.getY() == startPos.getY() ? 0 : Math.abs(pos.getY() - startPos.getY()) + 1;
                 var dz = pos.getZ() == startPos.getZ() ? 0 : Math.abs(pos.getZ() - startPos.getZ()) + 1;
 
-                player.displayClientMessage(Component.literal(String.format("Distance (XYZ): (%d, %d, %d)", dx, dy, dz)), false);
+                player.sendSystemMessage(Component.literal(String.format("Distance (XYZ): (%d, %d, %d)", dx, dy, dz)));
                 stack.remove(ModKit.START_POS_COMPONENT.get());
             } else {
                 stack.set(ModKit.START_POS_COMPONENT.get(), pos);
-                player.displayClientMessage(Component.literal(String.format("Measurement starting position: (%d %d %d)", pos.getX(), pos.getY(), pos.getZ())), true);
+                player.sendOverlayMessage(Component.literal(String.format("Measurement starting position: (%d %d %d)", pos.getX(), pos.getY(), pos.getZ())));
             }
         }
 

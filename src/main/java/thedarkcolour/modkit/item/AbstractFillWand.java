@@ -64,7 +64,7 @@ public abstract class AbstractFillWand extends Item {
             if (player != null) {
                 undoMap.put(player, builder.build());
 
-                player.displayClientMessage(getFillMessage().append(String.format("(%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())), true);
+                player.sendOverlayMessage(getFillMessage().append(String.format("(%d %d %d) to (%d %d %d)", startPos.getX(), startPos.getY(), startPos.getZ(), pos.getX(), pos.getY(), pos.getZ())));
             }
             stack.remove(ModKit.START_POS_COMPONENT);
         }
@@ -73,7 +73,7 @@ public abstract class AbstractFillWand extends Item {
     protected void saveStartPos(ItemStack stack, BlockPos pos, @Nullable Player player) {
         stack.set(ModKit.START_POS_COMPONENT, pos);
         if (player != null) {
-            player.displayClientMessage(Component.literal(String.format("Starting position: %d %d %d", pos.getX(), pos.getY(), pos.getZ())), true);
+            player.sendOverlayMessage(Component.literal(String.format("Starting position: %d %d %d", pos.getX(), pos.getY(), pos.getZ())));
         }
     }
 
@@ -92,9 +92,9 @@ public abstract class AbstractFillWand extends Item {
         if (!level.isClientSide()) {
             if (player.isShiftKeyDown()) {
                 player.getItemInHand(hand).remove(ModKit.START_POS_COMPONENT.get());
-                player.displayClientMessage(Component.literal("Cleared start position"), true);
+                player.sendOverlayMessage(Component.literal("Cleared start position"));
             } else if (undoMap.get(player) != null) {
-                player.displayClientMessage(Component.literal("Hold to undo"), true);
+                player.sendOverlayMessage(Component.literal("Hold to undo"));
                 player.startUsingItem(hand);
             }
         }
@@ -130,7 +130,7 @@ public abstract class AbstractFillWand extends Item {
                 for (var entry : undoBlocks.entrySet()) {
                     level.setBlock(entry.getKey(), entry.getValue(), 2);
                 }
-                player.displayClientMessage(Component.literal("Undo!"), true);
+                player.sendOverlayMessage(Component.literal("Undo!"));
                 undoMap.remove(player);
             }
         }
