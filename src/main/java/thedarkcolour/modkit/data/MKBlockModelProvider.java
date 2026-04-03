@@ -26,9 +26,9 @@ import net.minecraft.client.data.models.blockstates.MultiPartGenerator;
 import net.minecraft.client.data.models.blockstates.MultiVariantGenerator;
 import net.minecraft.client.data.models.blockstates.PropertyDispatch;
 import net.minecraft.client.data.models.model.*;
-import net.minecraft.client.renderer.block.model.BlockModelDefinition;
-import net.minecraft.client.renderer.block.model.Material;
-import net.minecraft.client.renderer.block.model.VariantMutator;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModelDispatcher;
+import net.minecraft.client.renderer.block.dispatch.VariantMutator;
+import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.CachedOutput;
@@ -869,8 +869,8 @@ public class MKBlockModelProvider implements DataProvider {
             Path outputPath = blockStatePath.resolve(blockName.getNamespace())
                     .resolve("blockstates")
                     .resolve(blockName.getPath() + ".json");
-            BlockModelDefinition definition = entry.getValue().create();
-            JsonElement json = BlockModelDefinition.CODEC.encodeStart(JsonOps.INSTANCE, definition).getOrThrow();
+            BlockStateModelDispatcher definition = entry.getValue().create();
+            JsonElement json = BlockStateModelDispatcher.CODEC.encodeStart(JsonOps.INSTANCE, definition).getOrThrow();
             futures[i++] = DataProvider.saveStable(cache, json, outputPath);
         }
 
