@@ -14,7 +14,7 @@ group = 'thedarkcolour.modkit'
 base.archivesName = 'modkit'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
-java.toolchain.vendor = JvmVendorSpec.JETBRAINS
+//java.toolchain.vendor = JvmVendorSpec.JETBRAINS
 java.withSourcesJar()
 
 neoForge {
