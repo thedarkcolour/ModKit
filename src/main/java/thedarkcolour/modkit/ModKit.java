@@ -32,6 +32,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.event.BlockEntityTypeAddBlocksEvent;
 import net.neoforged.neoforge.transfer.energy.InfiniteEnergyHandler;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
@@ -55,7 +56,7 @@ public class ModKit {
     public static final DeferredBlock<Block> INFINITE_POWER = BLOCKS.registerBlock("infinite_power", InfinitePowerBlock::new);
 
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, ID);
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<InfinitePowerBlockEntity>> INFINITE_POWER_TYPE = BLOCK_ENTITIES.register("infinite_power", () -> new BlockEntityType<>(InfinitePowerBlockEntity::new, Set.of(INFINITE_POWER.get())));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<InfinitePowerBlockEntity>> INFINITE_POWER_TYPE = BLOCK_ENTITIES.register("infinite_power", () -> new BlockEntityType<>(InfinitePowerBlockEntity::new, Set.of()));
 
     private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(ID);
     public static final DeferredItem<BlockItem> INFINITE_POWER_ITEM = ITEMS.registerSimpleBlockItem(INFINITE_POWER, props -> props.rarity(Rarity.EPIC));
@@ -94,6 +95,7 @@ public class ModKit {
         modBus.addListener(ModKit::postRegistry);
         modBus.addListener(ModKitDataGen::gatherData);
         modBus.addListener(EventPriority.LOWEST, ModKit::postCreativeTabs);
+        modBus.addListener(ModKit::registerBlockEntityBlocks);
         modBus.addListener(ModKit::registerCapabilities);
     }
 
@@ -134,5 +136,9 @@ public class ModKit {
 
     private static void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.Energy.BLOCK, INFINITE_POWER_TYPE.get(), (power, face) -> InfiniteEnergyHandler.INSTANCE);
+    }
+
+    private static void registerBlockEntityBlocks(BlockEntityTypeAddBlocksEvent event) {
+        event.modify(INFINITE_POWER_TYPE.get(), INFINITE_POWER.get());
     }
 }

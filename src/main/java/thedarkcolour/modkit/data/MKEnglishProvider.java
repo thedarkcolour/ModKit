@@ -22,6 +22,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.effect.MobEffect;
@@ -70,7 +71,7 @@ public class MKEnglishProvider extends LanguageProvider {
     private final boolean generateNames;
     @Nullable
     private final Consumer<MKEnglishProvider> addNames;
-    private final Map<String, String> data;
+    private final Map<String, Component> data;
     private final Map<Class<?>, Function<Object, @Nullable String>> registryObjectHandlers;
     private final List<ResourceKey<? extends Registry<?>>> autoTranslatedRegistries;
 
@@ -83,7 +84,7 @@ public class MKEnglishProvider extends LanguageProvider {
         this.addNames = addNames;
 
         try {
-            this.data = (Map<String, String>) FIELD_DATA.get(this);
+            this.data = (Map<String, Component>) FIELD_DATA.get(this);
         } catch (IllegalAccessException ignored) {
             throw new IllegalStateException("Failed to create MKEnglishProvider");
         }
@@ -165,9 +166,10 @@ public class MKEnglishProvider extends LanguageProvider {
 
     @Override
     public void add(String key, String value) {
-        String old = this.data.put(key, value);
-        if (old != null && !old.equals(value)) {
-            this.logger.info("Overridden/duplicate translation key \"{}\" (old: \"{}\" new: \"{}\")", key, old, value);
+        Component literalValue = Component.literal(value);
+        Component old = this.data.put(key, literalValue);
+        if (old != null && !old.equals(literalValue)) {
+            this.logger.info("Overridden/duplicate translation key \"{}\" (old: \"{}\" new: \"{}\")", key, old.getString(), value);
         }
     }
 

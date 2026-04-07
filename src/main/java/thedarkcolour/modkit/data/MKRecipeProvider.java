@@ -29,6 +29,7 @@ import net.minecraft.advancements.criterion.*;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.data.CachedOutput;
@@ -98,6 +99,7 @@ public class MKRecipeProvider extends RecipeProvider {
         super(lookupProvider, output);
         this.modid = modid;
         this.addRecipes = addRecipes;
+        this.output = output;
     }
 
     // Helper method to handle ingredient-object pairs
@@ -148,13 +150,27 @@ public class MKRecipeProvider extends RecipeProvider {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static ItemStack newItemStack(ItemLike item, int count, ItemDataMap data) {
-        ItemStack stack = new ItemStack(item, count);
+        ItemStack stack = item.asItem().getDefaultInstance().copyWithCount(count);
 
         for (ItemDataMap.Entry entry : data.entrySet()) {
             stack.set(entry.type(), entry.value());
         }
 
         return stack;
+    }
+
+    private static ItemStackTemplate newItemStackTemplate(ItemLike item, int count, ItemDataMap data) {
+        DataComponentPatch.Builder builder = DataComponentPatch.builder();
+        for (ItemDataMap.Entry<?> entry : data.entrySet()) {
+            setComponent(builder, entry);
+        }
+
+        return new ItemStackTemplate(item.asItem().builtInRegistryHolder(), count, builder.build());
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void setComponent(DataComponentPatch.Builder builder, ItemDataMap.Entry<?> entry) {
+        builder.set((net.minecraft.core.component.DataComponentType) entry.type(), entry.value());
     }
 
     /**
@@ -332,7 +348,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void shapedCrafting(@Nullable String recipeId, RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Consumer<ShapedRecipeBuilder> recipe) {
         Preconditions.checkNotNull(this.output);
 
-        var resultTemplate = ItemStackTemplate.fromNonEmptyStack(newItemStack(result, resultCount, resultData));
+        var resultTemplate = newItemStackTemplate(result, resultCount, resultData);
         ShapedRecipeBuilder builder = ShapedRecipeBuilder.shaped(this.registries.lookupOrThrow(Registries.ITEM), category, resultTemplate);
         recipe.accept(builder);
         if (isMissingCriterion(builder)) {
@@ -380,35 +396,35 @@ public class MKRecipeProvider extends RecipeProvider {
      * Simplest overload which accepts a category, result, and count.
      */
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
-        shapelessCrafting(category, new ItemStack(result, resultCount), ingredients);
+        shapelessCrafting(null, category, result, resultCount, null, null, ItemDataMap.of(), ingredients);
     }
 
     /**
      * Overload that accepts a group.
      */
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
-        shapelessCrafting(category, new ItemStack(result, resultCount), ingredients);
+        shapelessCrafting(null, category, result, resultCount, group, null, ItemDataMap.of(), ingredients);
     }
 
     /**
      * Overload that accepts an ID path.
      */
     public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
-        shapelessCrafting(Identifier.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
+        shapelessCrafting(Identifier.fromNamespaceAndPath(this.modid, path), category, result, resultCount, null, null, ItemDataMap.of(), ingredients);
     }
 
     /**
      * Overload that accepts an item data map, which is like the old item NBT tag.
      */
     public void shapelessCrafting(RecipeCategory category, ItemLike result, int resultCount, ItemDataMap resultData, Object... ingredients) {
-        shapelessCrafting(category, newItemStack(result, resultCount, resultData), ingredients);
+        shapelessCrafting(null, category, result, resultCount, null, null, resultData, ingredients);
     }
 
     /**
      * Overload that accepts an ID.
      */
     public void shapelessCrafting(Identifier id, RecipeCategory category, ItemLike result, int resultCount, Object... ingredients) {
-        shapelessCrafting(id, category, new ItemStack(result, resultCount), null, ingredients);
+        shapelessCrafting(id, category, result, resultCount, null, null, ItemDataMap.of(), ingredients);
     }
 
     /**
@@ -429,7 +445,71 @@ public class MKRecipeProvider extends RecipeProvider {
      * Overload that accepts an ID path and recipe group.
      */
     public void shapelessCrafting(String path, RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, Object... ingredients) {
-        shapelessCrafting(Identifier.fromNamespaceAndPath(this.modid, path), category, result, resultCount, ingredients);
+        shapelessCrafting(Identifier.fromNamespaceAndPath(this.modid, path), category, result, resultCount, group, null, ItemDataMap.of(), ingredients);
+    }
+
+    public void shapelessCrafting(@Nullable Identifier id, RecipeCategory category, ItemLike result, int resultCount, @Nullable String group, @Nullable Pair<String, Criterion<?>> unlockedBy, ItemDataMap resultData, Object... ingredients) {
+        Preconditions.checkNotNull(output);
+
+        ShapelessRecipeBuilder shapeless = ShapelessRecipeBuilder.shapeless(
+                this.registries.lookupOrThrow(Registries.ITEM),
+                category,
+                newItemStackTemplate(result, resultCount, resultData)
+        );
+
+        if (group != null) {
+            shapeless.group(group);
+        }
+
+        if (unlockedBy != null) {
+            shapeless.unlockedBy(unlockedBy.left(), unlockedBy.right());
+        } else {
+            boolean noCriterion = true;
+            ArrayList<Object> rawIngredients = expandPairIngredients(ingredients);
+
+            for (Object ingredient : rawIngredients) {
+                Preconditions.checkNotNull(ingredient);
+
+                if (ingredient instanceof DeferredHolder<?, ?> obj) {
+                    ingredient = obj.get();
+                    Preconditions.checkArgument(ingredient instanceof ItemLike);
+                }
+
+                switch (ingredient) {
+                    case ItemLike item -> {
+                        shapeless.requires(item);
+                        if (noCriterion) {
+                            unlockedByHaving(shapeless, item);
+                            noCriterion = false;
+                        }
+                    }
+                    case TagKey<?> tag -> {
+                        shapeless.requires((TagKey<Item>) tag);
+                        if (noCriterion) {
+                            unlockedByHaving(shapeless, (TagKey<Item>) tag);
+                            noCriterion = false;
+                        }
+                    }
+                    case Ingredient ingredient2 -> {
+                        shapeless.requires(ingredient2);
+                        if (noCriterion) {
+                            noCriterion = !unlockedByHaving(shapeless, ingredient2);
+                        }
+                    }
+                    default -> throw nonIngredientArgument(ingredient);
+                }
+            }
+
+            if (noCriterion && isMissingCriterion(shapeless)) {
+                throw new IllegalStateException("Argument list must contain one TagKey or ItemLike for adding automatic advancement criterion");
+            }
+        }
+
+        if (id != null) {
+            shapeless.save(output, createRecipeKey(id));
+        } else {
+            shapeless.save(output);
+        }
     }
 
     /**
@@ -906,24 +986,31 @@ public class MKRecipeProvider extends RecipeProvider {
      * @return True if a criterion was added to the recipe
      */
     public boolean unlockedByHaving(Object builder, Ingredient ingredient) {
-        if (ingredient.isEmpty() || ingredient.isCustom()) {
+        if (ingredient.isCustom()) {
             return false;
         }
 
-        LinkedHashSet<ItemLike> items = new LinkedHashSet<>();
+        try {
+            Optional<TagKey<Item>> tag = ingredient.getValues().unwrapKey();
+            if (tag.isPresent()) {
+                unlockedByHaving(builder, tag.get());
+                return true;
+            }
 
-        Optional<TagKey<Item>> tag = ingredient.getValues().unwrapKey();
-        if (tag.isPresent()) {
-            unlockedByHaving(builder, tag.get());
+            LinkedHashSet<ItemLike> items = new LinkedHashSet<>();
+            for (var value : ingredient.getValues()) {
+                items.add(value.value());
+            }
+
+            if (items.isEmpty()) {
+                return false;
+            }
+
+            unlockedByHaving(builder, items.getFirst());
             return true;
+        } catch (UnsupportedOperationException ignored) {
+            return false;
         }
-
-        for (var value : ingredient.getValues()) {
-            items.add(value.value());
-        }
-
-        unlockedByHaving(builder, items.getFirst());
-        return true;
     }
 
     /**

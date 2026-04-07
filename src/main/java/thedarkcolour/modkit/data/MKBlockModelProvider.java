@@ -844,7 +844,7 @@ public class MKBlockModelProvider implements DataProvider {
         };
     }
 
-    private void acceptModel(Identifier location, ModelInstance model) {
+    public void acceptModel(Identifier location, ModelInstance model) {
         models.put(location, model);
     }
 
