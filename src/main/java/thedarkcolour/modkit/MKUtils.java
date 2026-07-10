@@ -26,6 +26,10 @@ import net.neoforged.neoforgespi.language.IModFileInfo;
 import net.neoforged.neoforgespi.language.IModInfo;
 import org.jetbrains.annotations.ApiStatus;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -37,12 +41,18 @@ public class MKUtils {
     }
 
     public static <T> void forModRegistry(Registry<T> registry, String modid, BiConsumer<Identifier, T> consumer) {
+        // Iterate in a deterministic order sorted by id. MappedRegistry#entrySet is backed by a HashMap
+        // keyed on ResourceKey, whose identity-based hashCode makes iteration order vary between JVM runs.
+        // Sorting keeps generated data (e.g. auto-generated lang names) stable across datagen runs.
+        List<Map.Entry<ResourceKey<T>, T>> entries = new ArrayList<>();
         for (var entry : registry.entrySet()) {
-            var id = entry.getKey().identifier();
-
-            if (id.getNamespace().equals(modid)) {
-                consumer.accept(id, entry.getValue());
+            if (entry.getKey().identifier().getNamespace().equals(modid)) {
+                entries.add(entry);
             }
+        }
+        entries.sort(Comparator.comparing(entry -> entry.getKey().identifier()));
+        for (var entry : entries) {
+            consumer.accept(entry.getKey().identifier(), entry.getValue());
         }
     }
 
