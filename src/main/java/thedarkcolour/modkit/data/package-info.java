@@ -14,7 +14,5 @@
  * copies or substantial portions of the Software.
  */
 
-@com.mojang.logging.annotations.MethodsReturnNonnullByDefault
-@com.mojang.logging.annotations.FieldsAreNonnullByDefault
-@javax.annotation.ParametersAreNonnullByDefault
+@org.jspecify.annotations.NullMarked
 package thedarkcolour.modkit.data;

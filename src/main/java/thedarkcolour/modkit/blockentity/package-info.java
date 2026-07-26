@@ -14,6 +14,5 @@
  * copies or substantial portions of the Software.
  */
 
-@javax.annotation.ParametersAreNonnullByDefault
-@com.mojang.logging.annotations.MethodsReturnNonnullByDefault
+@org.jspecify.annotations.NullMarked
 package thedarkcolour.modkit.blockentity;

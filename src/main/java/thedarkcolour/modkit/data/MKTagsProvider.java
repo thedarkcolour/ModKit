@@ -139,7 +139,7 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
         if (this.registryKey.equals(Registries.ITEM)) {
             this.tagsToCopy.put(blockTag, itemTag);
         } else {
-            logger.warn("Tried to copy a block tag in a tag provider for registry " + registryKey.identifier());
+            this.logger.warn("Tried to copy a block tag in a tag provider for registry {}", registryKey.identifier());
         }
     }
 

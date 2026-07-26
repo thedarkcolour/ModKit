@@ -16,8 +16,9 @@
 
 package thedarkcolour.modkit.data;
 
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.data.tags.TagAppender;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagBuilder;
 import net.minecraft.tags.TagEntry;
 import net.minecraft.tags.TagKey;
@@ -25,7 +26,7 @@ import net.minecraft.tags.TagKey;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class DirectTagAppender<T> {
+public class DirectTagAppender<T> implements TagAppender<T> {
     private final TagBuilder builder;
     private final String modId;
     private final Function<T, ResourceKey<T>> keyGetter;
@@ -36,16 +37,24 @@ public class DirectTagAppender<T> {
         this.keyGetter = keyGetter;
     }
 
+    @Override
     public final DirectTagAppender<T> add(ResourceKey<T> key) {
         this.builder.addElement(key.identifier());
         return this;
     }
 
+    @Override
     @SafeVarargs
     public final DirectTagAppender<T> add(ResourceKey<T>... toAdd) {
         for (ResourceKey<T> resourcekey : toAdd) {
             this.builder.addElement(resourcekey.identifier());
         }
+        return this;
+    }
+
+    @Override
+    public DirectTagAppender<T> addOptional(ResourceKey<T> element) {
+        this.builder.addOptionalElement(element.identifier());
         return this;
     }
 
@@ -91,6 +100,7 @@ public class DirectTagAppender<T> {
         return this;
     }
 
+    @Override
     public DirectTagAppender<T> addTag(TagKey<T> tag) {
         this.builder.addTag(tag.location());
         return this;
@@ -101,10 +111,12 @@ public class DirectTagAppender<T> {
         return this;
     }
 
+    @Override
     public DirectTagAppender<T> addOptionalTag(TagKey<T> value) {
         return this.addOptionalTag(value.location());
     }
 
+    @Override
     public DirectTagAppender<T> add(TagEntry tag) {
         builder.add(tag);
         return this;
@@ -118,6 +130,7 @@ public class DirectTagAppender<T> {
         return modId;
     }
 
+    @Override
     @SafeVarargs
     public final DirectTagAppender<T> addTags(TagKey<T>... values) {
         for (TagKey<T> value : values) {
@@ -126,6 +139,7 @@ public class DirectTagAppender<T> {
         return this;
     }
 
+    @Override
     @SafeVarargs
     public final DirectTagAppender<T> addOptionalTags(TagKey<T>... values) {
         for (TagKey<T> value : values) {
@@ -134,12 +148,14 @@ public class DirectTagAppender<T> {
         return this;
     }
 
+    @Override
     public DirectTagAppender<T> replace() {
         return replace(true);
     }
 
+    @Override
     public DirectTagAppender<T> replace(boolean value) {
-        this.getInternalBuilder().replace(value);
+        this.getInternalBuilder().setReplace(value);
         return this;
     }
 
@@ -188,6 +204,7 @@ public class DirectTagAppender<T> {
      * @param resourceKey The resource key of the element to remove
      * @return The appender for chaining
      */
+    @Override
     public DirectTagAppender<T> remove(final ResourceKey<T> resourceKey) {
         this.remove(resourceKey.identifier());
         return this;
@@ -199,6 +216,7 @@ public class DirectTagAppender<T> {
      * @param resourceKeys The resource keys of the elements to remove
      * @return The appender for chaining
      */
+    @Override
     @SafeVarargs
     public final DirectTagAppender<T> remove(final ResourceKey<T> firstResourceKey, final ResourceKey<T>... resourceKeys) {
         this.remove(firstResourceKey.identifier());
@@ -214,6 +232,7 @@ public class DirectTagAppender<T> {
      * @param tag The ID of the tag to remove
      * @return The builder for chaining
      */
+    @Override
     public DirectTagAppender<T> remove(TagKey<T> tag) {
         this.getInternalBuilder().removeTag(tag.location());
         return this;
@@ -225,6 +244,7 @@ public class DirectTagAppender<T> {
      * @param tags The IDs of the tags to remove
      * @return The builder for chaining
      */
+    @Override
     @SafeVarargs
     public final DirectTagAppender<T> remove(TagKey<T> first, TagKey<T>... tags) {
         this.remove(first);
