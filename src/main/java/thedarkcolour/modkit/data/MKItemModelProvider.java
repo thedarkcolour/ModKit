@@ -40,6 +40,7 @@ import thedarkcolour.modkit.data.model.SafeItemModelBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
@@ -47,6 +48,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     private final boolean generate3dBlockItems;
     private final boolean generate2dItems;
     private final boolean generateSpawnEggs;
+    private final Predicate<ResourceLocation> entryFilter;
     @Nullable
     private final Consumer<MKItemModelProvider> addItemModels;
     private final List<ResourceLocation> excluded = new ArrayList<>();
@@ -59,6 +61,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
                                   boolean generate3dBlockItems,
                                   boolean generate2dItems,
                                   boolean generateSpawnEggs,
+                                  Predicate<ResourceLocation> entryFilter,
                                   @Nullable Consumer<MKItemModelProvider> addItemModels) {
         super(output, modid, "item", (outputLoc, efh) -> new SafeItemModelBuilder(outputLoc, logger, efh), helper);
 
@@ -66,6 +69,7 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
         this.generate3dBlockItems = generate3dBlockItems;
         this.generate2dItems = generate2dItems;
         this.generateSpawnEggs = generateSpawnEggs;
+        this.entryFilter = entryFilter;
         this.addItemModels = addItemModels;
     }
 
@@ -164,6 +168,9 @@ public class MKItemModelProvider extends ModelProvider<SafeItemModelBuilder> {
     protected void registerModels() {
         if (generate3dBlockItems || generate2dItems || generateSpawnEggs) {
             MKUtils.forModRegistry(Registries.ITEM, modid, (id, item) -> {
+                if (!this.entryFilter.test(id)) {
+                    return;
+                }
                 if (generate3dBlockItems && item instanceof BlockItem) {
                     generic3d(id);
                 } else if (generateSpawnEggs && item instanceof SpawnEggItem) {

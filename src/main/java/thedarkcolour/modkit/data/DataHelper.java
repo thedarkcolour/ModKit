@@ -18,10 +18,13 @@ package thedarkcolour.modkit.data;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.Registry;
+import net.minecraft.data.DataGenerator;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.common.util.Lazy;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 import org.jetbrains.annotations.Nullable;
@@ -32,9 +35,11 @@ import thedarkcolour.modkit.ModKit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Use this in your event handler for GatherDataEvent. To avoid requiring ModKit in-game,
@@ -55,6 +60,13 @@ public class DataHelper {
     protected final GatherDataEvent event;
     protected final Logger logger;
     protected final Map<ResourceKey<?>, MKTagsProvider<?>> tags;
+    protected final PackOutput packOutput;
+    protected final ExistingFileHelper existingFileHelper;
+    protected final CompletableFuture<HolderLookup.Provider> lookupProvider;
+    protected final boolean includeServer;
+    protected final boolean includeClient;
+    protected final ProviderRegistrar providerRegistrar;
+    protected final Predicate<ResourceLocation> entryFilter;
 
     @Nullable
     protected MKEnglishProvider english;
@@ -70,17 +82,28 @@ public class DataHelper {
     private MKDamageTypeProvider damageTypes;
 
     public DataHelper(String modid, GatherDataEvent event) {
-        this.modid = modid;
-        this.event = event;
-        this.logger = LoggerFactory.getLogger(ModKit.ID + "/" + modid);
+        this(new Builder(modid, event));
+    }
+
+    protected DataHelper(Builder builder) {
+        this.modid = builder.modid;
+        this.event = builder.event;
+        this.logger = builder.logger != null ? builder.logger : LoggerFactory.getLogger(ModKit.ID + "/" + builder.modid);
         this.tags = new HashMap<>();
+        this.packOutput = builder.packOutput != null ? builder.packOutput : builder.event.getGenerator().getPackOutput();
+        this.existingFileHelper = builder.existingFileHelper != null ? builder.existingFileHelper : builder.event.getExistingFileHelper();
+        this.lookupProvider = builder.lookupProvider != null ? builder.lookupProvider : builder.event.getLookupProvider();
+        this.includeServer = builder.includeServer != null ? builder.includeServer : builder.event.includeServer();
+        this.includeClient = builder.includeClient != null ? builder.includeClient : builder.event.includeClient();
+        this.providerRegistrar = builder.providerRegistrar != null ? builder.providerRegistrar : DataGenerator::addProvider;
+        this.entryFilter = builder.entryFilter != null ? builder.entryFilter : id -> true;
     }
 
     public MKDamageTypeProvider createDamageTypes(Consumer<MKDamageTypeProvider> addTypes) {
         this.checkNotCreated(this.damageTypes, "Damage Types");
 
-        this.damageTypes = new MKDamageTypeProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), this.modid, this.event.getLookupProvider(), addTypes);
-        this.event.getGenerator().addProvider(this.event.includeServer(), this.damageTypes);
+        this.damageTypes = new MKDamageTypeProvider(this.packOutput, this.existingFileHelper, this.modid, this.lookupProvider, addTypes);
+        this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeServer, this.damageTypes);
 
         return this.damageTypes;
     }
@@ -99,15 +122,15 @@ public class DataHelper {
     public MKEnglishProvider createEnglish(boolean generateNames, @Nullable Consumer<MKEnglishProvider> addTranslations) {
         this.checkNotCreated(this.english, "English language");
 
-        this.english = new MKEnglishProvider(event.getGenerator().getPackOutput(), this.modid, this.logger, generateNames, addTranslations);
+        this.english = new MKEnglishProvider(this.packOutput, this.modid, this.logger, generateNames, this.entryFilter, addTranslations);
 
         if (addModonomiconBooks != null) {
-            for (DataProvider book : addModonomiconBooks.apply(this.english, this.event.getGenerator().getPackOutput())) {
-                this.event.getGenerator().addProvider(true, book);
+            for (DataProvider book : addModonomiconBooks.apply(this.english, this.packOutput)) {
+                this.providerRegistrar.addProvider(this.event.getGenerator(), true, book);
             }
         }
 
-        this.event.getGenerator().addProvider(this.event.includeClient(), this.english);
+        this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeClient, this.english);
 
         return this.english;
     }
@@ -141,8 +164,8 @@ public class DataHelper {
     public MKItemModelProvider createItemModels(boolean generate3dBlockItems, boolean generate2dItems, boolean generateSpawnEggs, @Nullable Consumer<MKItemModelProvider> addItemModels) {
         this.checkNotCreated(this.itemModels, "Item models");
 
-        this.itemModels = new MKItemModelProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), this.modid, this.logger, generate3dBlockItems, generate2dItems, generateSpawnEggs, addItemModels);
-        this.event.getGenerator().addProvider(this.event.includeClient(), this.itemModels);
+        this.itemModels = new MKItemModelProvider(this.packOutput, this.existingFileHelper, this.modid, this.logger, generate3dBlockItems, generate2dItems, generateSpawnEggs, this.entryFilter, addItemModels);
+        this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeClient, this.itemModels);
 
         return this.itemModels;
     }
@@ -168,13 +191,13 @@ public class DataHelper {
         Lazy<MKItemModelProvider> lazyItemModels = Lazy.of(() -> {
             if (this.itemModels == null) {
                 this.createItemModels(false, false, false, null);
-                this.event.getGenerator().addProvider(this.event.includeClient(), this.itemModels);
+                this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeClient, this.itemModels);
             }
             return this.itemModels;
         });
 
-        this.blockModels = new MKBlockModelProvider(this.event.getGenerator().getPackOutput(), this.event.getExistingFileHelper(), lazyItemModels, this.modid, this.logger, addBlockModels);
-        this.event.getGenerator().addProvider(this.event.includeClient(), this.blockModels);
+        this.blockModels = new MKBlockModelProvider(this.packOutput, this.existingFileHelper, lazyItemModels, this.modid, this.logger, addBlockModels);
+        this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeClient, this.blockModels);
 
         return this.blockModels;
     }
@@ -189,8 +212,8 @@ public class DataHelper {
     public MKRecipeProvider createRecipes(BiConsumer<RecipeOutput, MKRecipeProvider> addRecipes) {
         this.checkNotCreated(this.recipes, "Recipes");
 
-        this.recipes = new MKRecipeProvider(this.event.getGenerator().getPackOutput(), this.event.getLookupProvider(), this.modid, addRecipes);
-        this.event.getGenerator().addProvider(this.event.includeServer(), this.recipes);
+        this.recipes = new MKRecipeProvider(this.packOutput, this.lookupProvider, this.modid, addRecipes);
+        this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeServer, this.recipes);
 
         return this.recipes;
     }
@@ -209,7 +232,7 @@ public class DataHelper {
 
         var provider = new MKTagsProvider<>(this, registry, addTags);
         this.tags.put(registry, provider);
-        this.event.getGenerator().addProvider(this.event.includeServer(), provider);
+        this.providerRegistrar.addProvider(this.event.getGenerator(), this.includeServer, provider);
 
         return provider;
     }
@@ -226,6 +249,90 @@ public class DataHelper {
     private void checkNotCreated(@Nullable Object obj, String provider) {
         if (obj != null) {
             throw new IllegalStateException(provider + " generation already created!");
+        }
+    }
+
+    /**
+     * Overrides for the values a DataHelper otherwise reads off the GatherDataEvent. Every field left unset
+     * keeps the event's answer, so a builder with no overrides is the plain constructor.
+     *
+     * <p>Ex. one helper per output root:
+     * {@code new DataHelper.Builder(modid, event).packOutput(new PackOutput(root)).build()}
+     */
+    public static class Builder {
+        private final String modid;
+        private final GatherDataEvent event;
+        @Nullable
+        private PackOutput packOutput;
+        @Nullable
+        private ExistingFileHelper existingFileHelper;
+        @Nullable
+        private CompletableFuture<HolderLookup.Provider> lookupProvider;
+        @Nullable
+        private Boolean includeServer;
+        @Nullable
+        private Boolean includeClient;
+        @Nullable
+        private ProviderRegistrar providerRegistrar;
+        @Nullable
+        private Predicate<ResourceLocation> entryFilter;
+        @Nullable
+        private Logger logger;
+
+        public Builder(String modid, GatherDataEvent event) {
+            this.modid = modid;
+            this.event = event;
+        }
+
+        /**
+         * @param packOutput The root every provider this helper creates writes to
+         */
+        public Builder packOutput(PackOutput packOutput) {
+            this.packOutput = packOutput;
+            return this;
+        }
+
+        public Builder existingFileHelper(ExistingFileHelper existingFileHelper) {
+            this.existingFileHelper = existingFileHelper;
+            return this;
+        }
+
+        public Builder lookupProvider(CompletableFuture<HolderLookup.Provider> lookupProvider) {
+            this.lookupProvider = lookupProvider;
+            return this;
+        }
+
+        public Builder includeServer(boolean includeServer) {
+            this.includeServer = includeServer;
+            return this;
+        }
+
+        public Builder includeClient(boolean includeClient) {
+            this.includeClient = includeClient;
+            return this;
+        }
+
+        public Builder addProvider(ProviderRegistrar providerRegistrar) {
+            this.providerRegistrar = providerRegistrar;
+            return this;
+        }
+
+        /**
+         * @param entryFilter The registry ids this helper's automatic generation covers. Ex. one mod split
+         *                    across several jars gives each jar the ids that jar registers
+         */
+        public Builder entryFilter(Predicate<ResourceLocation> entryFilter) {
+            this.entryFilter = entryFilter;
+            return this;
+        }
+
+        public Builder logger(Logger logger) {
+            this.logger = logger;
+            return this;
+        }
+
+        public DataHelper build() {
+            return new DataHelper(this);
         }
     }
 }

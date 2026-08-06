@@ -62,7 +62,7 @@ public class MKTagsProvider<T> extends TagsProvider<T> implements Function<TagKe
 
     @SuppressWarnings("unchecked")
     protected MKTagsProvider(DataHelper helper, ResourceKey<? extends Registry<T>> registry, BiConsumer<MKTagsProvider<T>, HolderLookup.Provider> addTags) {
-        super(helper.event.getGenerator().getPackOutput(), registry, helper.event.getLookupProvider(), helper.modid, helper.event.getExistingFileHelper());
+        super(helper.packOutput, registry, helper.lookupProvider, helper.modid, helper.existingFileHelper);
 
         this.keyGetter = chooseKeyGetter(registry);
         this.addTags = addTags;

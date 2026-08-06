@@ -24,6 +24,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.data.PackOutput;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
@@ -47,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * English language generation.
@@ -69,6 +71,7 @@ public class MKEnglishProvider extends LanguageProvider {
     private final String modid;
     private final Logger logger;
     private final boolean generateNames;
+    private final Predicate<ResourceLocation> entryFilter;
     @Nullable
     private final Consumer<MKEnglishProvider> addNames;
     private final Map<String, String> data;
@@ -76,11 +79,12 @@ public class MKEnglishProvider extends LanguageProvider {
     private final List<ResourceKey<? extends Registry<?>>> autoTranslatedRegistries;
 
     @ApiStatus.Internal
-    public MKEnglishProvider(PackOutput output, String modid, Logger logger, boolean generateNames, @Nullable Consumer<MKEnglishProvider> addNames) {
+    public MKEnglishProvider(PackOutput output, String modid, Logger logger, boolean generateNames, Predicate<ResourceLocation> entryFilter, @Nullable Consumer<MKEnglishProvider> addNames) {
         super(output, modid, "en_us");
         this.modid = modid;
         this.logger = logger;
         this.generateNames = generateNames;
+        this.entryFilter = entryFilter;
         this.addNames = addNames;
 
         try {
@@ -123,6 +127,9 @@ public class MKEnglishProvider extends LanguageProvider {
 
                     try {
                         MKUtils.forModRegistry(optional.get(), this.modid, (id, obj) -> {
+                            if (!this.entryFilter.test(id)) {
+                                return;
+                            }
                             String name = WordUtils.capitalize(id.getPath().replace('_', ' '));
                             String key = getTranslationKey(obj);
 
