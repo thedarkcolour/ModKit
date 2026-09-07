@@ -504,7 +504,7 @@ public class MKRecipeProvider extends RecipeProvider {
     public void grid2x2(RecipeCategory category, ItemLike result, int resultCount, Ingredient ingredient, @Nullable String group) {
         Preconditions.checkNotNull(this.output);
 
-        shapedCrafting(category, result, recipe -> {
+        shapedCrafting(category, result, resultCount, recipe -> {
             recipe.define('#', ingredient);
             recipe.pattern("##");
             recipe.pattern("##");
